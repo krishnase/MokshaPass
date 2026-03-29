@@ -1,0 +1,279 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getInventory, saveSale, reduceInventoryQty } from '@/lib/storage';
+import { InventoryItem } from '@/types';
+
+const DELIVERY_FEE = 15;
+
+export default function SalesForm() {
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [customerName, setCustomerName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [selectedItemId, setSelectedItemId] = useState('');
+  const [qty, setQty] = useState(1);
+  const [delivery, setDelivery] = useState(false);
+  const [address, setAddress] = useState('');
+  const [payment, setPayment] = useState<'Cash' | 'Zelle'>('Cash');
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => { setInventory(getInventory()); }, []);
+
+  const selectedItem = inventory.find((i) => i.id === selectedItemId);
+  const subtotal = selectedItem ? selectedItem.price * qty : 0;
+  const deliveryFee = delivery ? DELIVERY_FEE : 0;
+  const total = subtotal + deliveryFee;
+
+  const handleScreenshot = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setScreenshot(result);
+      setScreenshotPreview(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const validate = () => {
+    if (!customerName.trim()) return 'Customer name is required';
+    if (!phone.trim()) return 'Phone number is required';
+    if (!selectedItemId) return 'Please select an item';
+    if (qty < 1) return 'Quantity must be at least 1';
+    if (selectedItem && qty > selectedItem.qty) return `Only ${selectedItem.qty} in stock`;
+    if (delivery && !address.trim()) return 'Delivery address is required';
+    if (payment === 'Zelle' && !screenshot) return 'Please upload Zelle payment screenshot';
+    return '';
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const err = validate();
+    if (err) { setError(err); return; }
+    if (!selectedItem) return;
+
+    saveSale({
+      customerName: customerName.trim(),
+      phone: phone.trim(),
+      item: selectedItem.name,
+      itemId: selectedItem.id,
+      qty,
+      price: selectedItem.price,
+      subtotal,
+      deliveryFee,
+      total,
+      delivery,
+      address: delivery ? address.trim() : undefined,
+      payment,
+      screenshot: screenshot || undefined,
+    });
+
+    reduceInventoryQty(selectedItem.id, qty);
+    setInventory(getInventory());
+    setSubmitted(true);
+  };
+
+  const reset = () => {
+    setCustomerName(''); setPhone(''); setSelectedItemId('');
+    setQty(1); setDelivery(false); setAddress('');
+    setPayment('Cash'); setScreenshot(null); setScreenshotPreview(null);
+    setError(''); setSubmitted(false);
+  };
+
+  if (submitted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+          <span className="text-4xl">✅</span>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Sale Recorded!</h2>
+        <p className="text-gray-600 mb-1">{customerName} — {selectedItem?.name} x{qty}</p>
+        <p className="text-2xl font-bold text-purple-600 mb-2">${total.toFixed(2)}</p>
+        {delivery && <p className="text-sm text-gray-500 mb-1">🚚 Delivery to: {address}</p>}
+        <p className="text-sm text-gray-500 mb-6">Payment: {payment}</p>
+        <button
+          onClick={reset}
+          className="bg-purple-600 text-white px-8 py-3 rounded-2xl font-semibold text-lg active:scale-95 transition-transform"
+        >
+          New Sale
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 max-w-lg mx-auto pb-24">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">New Sale</h2>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-4 text-sm">
+          ⚠️ {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Customer Info */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+          <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Customer</h3>
+          <input
+            type="text"
+            placeholder="Customer Name *"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400"
+          />
+          <input
+            type="tel"
+            placeholder="Phone Number *"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400"
+          />
+        </div>
+
+        {/* Item Selection */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+          <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Item</h3>
+          <select
+            value={selectedItemId}
+            onChange={(e) => setSelectedItemId(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"
+          >
+            <option value="">Select an item *</option>
+            {inventory.map((item) => (
+              <option key={item.id} value={item.id} disabled={item.qty === 0}>
+                {item.name} — ${item.price.toFixed(2)} {item.qty === 0 ? '(Out of Stock)' : `(${item.qty} left)`}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-gray-600 w-20">Quantity</label>
+            <div className="flex items-center gap-2 flex-1">
+              <button
+                type="button"
+                onClick={() => setQty((q) => Math.max(1, q - 1))}
+                className="w-10 h-10 rounded-full bg-gray-100 text-xl font-bold text-gray-600 active:scale-95"
+              >−</button>
+              <span className="text-xl font-bold w-8 text-center">{qty}</span>
+              <button
+                type="button"
+                onClick={() => setQty((q) => q + 1)}
+                className="w-10 h-10 rounded-full bg-gray-100 text-xl font-bold text-gray-600 active:scale-95"
+              >+</button>
+            </div>
+          </div>
+
+          {selectedItem && (
+            <div className="bg-purple-50 rounded-xl p-3 space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Unit Price</span>
+                <span className="font-medium">${selectedItem.price.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="font-medium">${subtotal.toFixed(2)}</span>
+              </div>
+              {delivery && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Delivery Fee</span>
+                  <span className="font-medium">+${DELIVERY_FEE.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-purple-200 pt-1 mt-1">
+                <span className="font-bold text-purple-700">Total</span>
+                <span className="font-bold text-purple-700 text-lg">${total.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Delivery */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-700">Delivery Required</h3>
+              <p className="text-sm text-gray-500">+$15.00 delivery fee</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDelivery(!delivery)}
+              className={`w-14 h-7 rounded-full transition-colors duration-200 relative ${
+                delivery ? 'bg-purple-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform duration-200 ${
+                  delivery ? 'translate-x-7' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+          </div>
+
+          {delivery && (
+            <textarea
+              placeholder="Delivery Address *"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              rows={2}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
+            />
+          )}
+        </div>
+
+        {/* Payment */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+          <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Payment</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {(['Cash', 'Zelle'] as const).map((method) => (
+              <button
+                key={method}
+                type="button"
+                onClick={() => setPayment(method)}
+                className={`py-3 rounded-xl font-semibold text-base transition-all active:scale-95 ${
+                  payment === method
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700'
+                }`}
+              >
+                {method === 'Cash' ? '💵 Cash' : '📱 Zelle'}
+              </button>
+            ))}
+          </div>
+
+          {payment === 'Zelle' && (
+            <div className="space-y-2">
+              <label className="block text-sm text-gray-600 font-medium">
+                Upload Payment Screenshot *
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleScreenshot}
+                className="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-purple-100 file:text-purple-700 file:font-medium"
+              />
+              {screenshotPreview && (
+                <img
+                  src={screenshotPreview}
+                  alt="Payment screenshot"
+                  className="w-full max-h-48 object-contain rounded-xl border border-gray-200 mt-2"
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          className="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform mt-2"
+        >
+          Complete Sale
+        </button>
+      </form>
+    </div>
+  );
+}
