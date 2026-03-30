@@ -1,4 +1,4 @@
-import { Guest } from '@/types';
+import { Guest, SaleRecord, CheckInEntry } from '@/types';
 
 /**
  * Fetches guest data from a publicly shared Google Sheet.
@@ -60,6 +60,77 @@ export function searchGuests(guests: Guest[], query: string): Guest[] {
       g.lastName.toLowerCase().includes(q) ||
       g.phone.replace(/\D/g, '').includes(q.replace(/\D/g, ''))
   );
+}
+
+/**
+ * Reads Sales tab from Google Sheet.
+ * Sales tab columns: ID | Date | Customer | Phone | Item | Qty | Price | Subtotal | Delivery Fee | Total | Delivery | Payment | Address | Timestamp
+ */
+export async function fetchSalesFromSheet(): Promise<SaleRecord[]> {
+  if (!SHEET_ID) return [];
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Sales`;
+    const res = await fetch(url, { cache: 'no-store' });
+    const text = await res.text();
+    const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
+    if (!json.table?.rows?.length) return [];
+    const rows: SaleRecord[] = [];
+    for (const row of json.table.rows) {
+      if (!row?.c) continue;
+      const cells = row.c.map((c: { v: unknown } | null) => c?.v ?? '');
+      if (!cells[2]) continue;
+      rows.push({
+        id: String(cells[0] || ''),
+        date: String(cells[1] || ''),
+        customerName: String(cells[2] || ''),
+        phone: String(cells[3] || ''),
+        item: String(cells[4] || ''),
+        itemId: '',
+        qty: Number(cells[5]) || 1,
+        price: Number(cells[6]) || 0,
+        subtotal: Number(cells[7]) || 0,
+        deliveryFee: Number(cells[8]) || 0,
+        total: Number(cells[9]) || 0,
+        delivery: String(cells[10]) === 'Yes',
+        payment: (String(cells[11]) as 'Cash' | 'Zelle') || 'Cash',
+        address: String(cells[12] || ''),
+        timestamp: Number(cells[13]) || 0,
+      });
+    }
+    return rows.filter((r) => r.customerName).reverse();
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Reads CheckIns tab from Google Sheet.
+ * CheckIns tab columns: Guest Name | Phone | Date | Time
+ */
+export async function fetchCheckInsFromSheet(): Promise<CheckInEntry[]> {
+  if (!SHEET_ID) return [];
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=CheckIns`;
+    const res = await fetch(url, { cache: 'no-store' });
+    const text = await res.text();
+    const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
+    if (!json.table?.rows?.length) return [];
+    const rows: CheckInEntry[] = [];
+    for (const row of json.table.rows) {
+      if (!row?.c) continue;
+      const cells = row.c.map((c: { v: unknown } | null) => c?.v ?? '');
+      if (!cells[0]) continue;
+      rows.push({
+        guestName: String(cells[0] || ''),
+        guestPhone: String(cells[1] || ''),
+        date: String(cells[2] || ''),
+        time: String(cells[3] || ''),
+      });
+    }
+    return rows.filter((r) => r.guestName);
+  } catch {
+    return [];
+  }
 }
 
 function getMockGuests(): Guest[] {

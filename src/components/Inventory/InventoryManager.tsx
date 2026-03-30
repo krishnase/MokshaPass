@@ -8,6 +8,7 @@ import {
   deleteInventoryItem,
   getSales,
 } from '@/lib/storage';
+import { fetchSalesFromSheet } from '@/lib/sheets';
 import { InventoryItem, SaleRecord } from '@/types';
 
 export default function InventoryManager() {
@@ -24,7 +25,17 @@ export default function InventoryManager() {
 
   const refresh = () => {
     setItems(getInventory());
-    setSales(getSales());
+    const local = getSales();
+    setSales(local);
+    // Try to load from Google Sheet for cross-device sync
+    fetchSalesFromSheet().then((sheetSales) => {
+      if (sheetSales.length > 0) {
+        // Merge: sheet is source of truth, fill in any local-only entries
+        const ids = new Set(sheetSales.map((s) => s.id));
+        const localOnly = local.filter((s) => !ids.has(s.id));
+        setSales([...sheetSales, ...localOnly]);
+      }
+    });
   };
   useEffect(() => { refresh(); }, []);
 

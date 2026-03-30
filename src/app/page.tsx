@@ -22,6 +22,7 @@ const tabs: { id: Tab; label: string; icon: string; adminOnly?: boolean }[] = [
 export default function Home() {
   const [role, setRole] = useState<UserRole>(null);
   const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [showInfo, setShowInfo] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -78,7 +79,7 @@ export default function Home() {
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)] z-40">
         <div
           className="grid"
-          style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}
+          style={{ gridTemplateColumns: `repeat(${visibleTabs.length + 1}, 1fr)` }}
         >
           {visibleTabs.map((tab) => (
             <button
@@ -90,18 +91,10 @@ export default function Home() {
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              <span
-                className={`text-2xl transition-transform ${
-                  activeTab === tab.id ? 'scale-110' : 'scale-100'
-                }`}
-              >
+              <span className={`text-2xl transition-transform ${activeTab === tab.id ? 'scale-110' : 'scale-100'}`}>
                 {tab.icon}
               </span>
-              <span
-                className={`text-[11px] font-semibold ${
-                  activeTab === tab.id ? 'text-purple-600' : 'text-gray-400'
-                }`}
-              >
+              <span className={`text-[11px] font-semibold ${activeTab === tab.id ? 'text-purple-600' : 'text-gray-400'}`}>
                 {tab.label}
               </span>
               {activeTab === tab.id && (
@@ -109,10 +102,56 @@ export default function Home() {
               )}
             </button>
           ))}
+
+          {/* Info Tab */}
+          <button
+            onClick={() => setShowInfo(true)}
+            className="flex flex-col items-center justify-center py-3 gap-0.5 transition-colors active:scale-95 text-gray-400 hover:text-gray-600"
+          >
+            <span className="text-2xl">ℹ️</span>
+            <span className="text-[11px] font-semibold">Info</span>
+          </button>
         </div>
-        {/* Safe area spacer for notched phones */}
         <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
       </nav>
+
+      {/* Info Modal */}
+      {showInfo && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4" onClick={() => setShowInfo(false)}>
+          <div
+            className="bg-white rounded-3xl w-full max-w-md p-6 space-y-4 mb-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-800">Retreat Info</h2>
+              <button onClick={() => setShowInfo(false)} className="text-gray-400 text-2xl leading-none">✕</button>
+            </div>
+
+            {/* Room Service */}
+            <div className="flex items-start gap-3 bg-purple-50 rounded-2xl p-4">
+              <span className="text-2xl shrink-0">🏡</span>
+              <div>
+                <p className="font-semibold text-gray-800">LoneOak Ranch — Room Service</p>
+                <a
+                  href="tel:9406682855"
+                  className="text-purple-600 font-bold text-lg mt-0.5 block"
+                >
+                  940-668-2855
+                </a>
+              </div>
+            </div>
+
+            {/* WiFi */}
+            <div className="flex items-start gap-3 bg-blue-50 rounded-2xl p-4">
+              <span className="text-2xl shrink-0">📶</span>
+              <div>
+                <p className="font-semibold text-gray-800">WiFi Password</p>
+                <p className="text-blue-700 font-bold text-lg mt-0.5 tracking-wide">loneoak1</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

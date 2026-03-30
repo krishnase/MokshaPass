@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { fetchGuests, searchGuests } from '@/lib/sheets';
+import { postToSheet } from '@/lib/api';
 import { logCheckIn, isCheckedInToday, getTodayCheckInCount } from '@/lib/storage';
 import { sendCheckInEmail } from '@/lib/email';
 import { Guest } from '@/types';
@@ -49,11 +50,12 @@ export default function CheckInSystem() {
     if (!selected) return;
     setCheckingIn(true);
 
-    logCheckIn({
+    const entry = logCheckIn({
       guestPhone: selected.phone,
       guestName: `${selected.firstName} ${selected.lastName}`,
     });
 
+    postToSheet({ type: 'checkin', ...entry });
     setTodayCount(getTodayCheckInCount());
 
     const result = await sendCheckInEmail(selected);

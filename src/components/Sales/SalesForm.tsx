@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getInventory, saveSale, reduceInventoryQty } from '@/lib/storage';
+import { postToSheet } from '@/lib/api';
 import { InventoryItem } from '@/types';
 
 const DELIVERY_FEE = 15;
@@ -56,7 +57,7 @@ export default function SalesForm() {
     if (err) { setError(err); return; }
     if (!selectedItem) return;
 
-    saveSale({
+    const sale = saveSale({
       customerName: customerName.trim(),
       phone: phone.trim(),
       item: selectedItem.name,
@@ -70,6 +71,24 @@ export default function SalesForm() {
       address: delivery ? address.trim() : undefined,
       payment,
       screenshot: screenshot || undefined,
+    });
+
+    postToSheet({
+      type: 'sale',
+      id: sale.id,
+      date: sale.date,
+      customerName: sale.customerName,
+      phone: sale.phone,
+      item: sale.item,
+      qty: sale.qty,
+      price: sale.price,
+      subtotal: sale.subtotal,
+      deliveryFee: sale.deliveryFee,
+      total: sale.total,
+      delivery: sale.delivery,
+      payment: sale.payment,
+      address: sale.address || '',
+      timestamp: sale.timestamp,
     });
 
     reduceInventoryQty(selectedItem.id, qty);

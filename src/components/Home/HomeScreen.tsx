@@ -42,6 +42,21 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
         </button>
       </div>
 
+      {/* MokshaMart Banner */}
+      <button
+        onClick={() => onNavigate('sales')}
+        className="w-full max-w-sm mb-8 active:scale-95 transition-transform"
+      >
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-3xl p-5 flex items-center gap-4 shadow-lg">
+          <span className="text-5xl shrink-0">🪷</span>
+          <div className="text-left">
+            <p className="text-white font-bold text-lg leading-tight">MokshaMart</p>
+            <p className="text-purple-200 text-sm mt-0.5">Crystals, oils, sacred items & more</p>
+            <p className="text-orange-300 text-xs font-semibold mt-1">Shop Now →</p>
+          </div>
+        </div>
+      </button>
+
       {/* Divider */}
       <div className="w-16 h-0.5 bg-orange-200 rounded-full mb-8" />
 

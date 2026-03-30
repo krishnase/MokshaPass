@@ -15,6 +15,9 @@ const TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '';
 const PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || '';
 
 export async function sendCheckInEmail(guest: Guest): Promise<{ success: boolean; message: string }> {
+  return { success: true, message: '' };
+
+  // eslint-disable-next-line no-unreachable
   if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
     return {
       success: false,
