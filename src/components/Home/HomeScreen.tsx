@@ -3,7 +3,7 @@
 import Image from 'next/image';
 
 interface HomeScreenProps {
-  onNavigate: (tab: 'checkin' | 'sales') => void;
+  onNavigate: (tab: 'checkin' | 'sales' | 'info') => void;
 }
 
 export default function HomeScreen({ onNavigate }: HomeScreenProps) {
@@ -22,7 +22,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
       </div>
 
       {/* Action Cards */}
-      <div className="w-full max-w-sm grid grid-cols-2 gap-4 mb-8">
+      <div className="w-full max-w-sm grid grid-cols-2 gap-4 mb-4">
         <button
           onClick={() => onNavigate('checkin')}
           className="flex flex-col items-center justify-center gap-3 bg-white rounded-3xl shadow-md border border-purple-100 py-8 px-4 active:scale-95 transition-transform hover:shadow-lg hover:border-purple-300"
@@ -42,20 +42,17 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
         </button>
       </div>
 
-      {/* MokshaMart Banner */}
-      <button
-        onClick={() => onNavigate('sales')}
-        className="w-full max-w-sm mb-8 active:scale-95 transition-transform"
-      >
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-3xl p-5 flex items-center gap-4 shadow-lg">
-          <span className="text-5xl shrink-0">🪷</span>
-          <div className="text-left">
-            <p className="text-white font-bold text-lg leading-tight">MokshaMart</p>
-            <p className="text-purple-200 text-sm mt-0.5">Crystals, oils, sacred items & more</p>
-            <p className="text-orange-300 text-xs font-semibold mt-1">Shop Now →</p>
-          </div>
-        </div>
-      </button>
+      {/* Info Card */}
+      <div className="w-full max-w-sm mb-8">
+        <button
+          onClick={() => onNavigate('info')}
+          className="w-full flex flex-col items-center justify-center gap-2 bg-white rounded-3xl shadow-md border border-blue-100 py-5 px-4 active:scale-95 transition-transform hover:shadow-lg hover:border-blue-300"
+        >
+          <span className="text-4xl">ℹ️</span>
+          <span className="text-base font-bold text-gray-800">Retreat Info</span>
+          <span className="text-xs text-gray-400 text-center">WiFi · Room Service · Details</span>
+        </button>
+      </div>
 
       {/* Divider */}
       <div className="w-16 h-0.5 bg-orange-200 rounded-full mb-8" />

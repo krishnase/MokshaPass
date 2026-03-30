@@ -5,13 +5,16 @@ import Image from 'next/image';
 import { setSession } from '@/lib/storage';
 
 const ADMIN_PIN = '9999';
+const SENA_PIN = '1234';
+
+type PinMode = 'select' | 'admin-pin' | 'sena-pin';
 
 interface Props {
-  onLogin: (role: 'admin' | 'user') => void;
+  onLogin: (role: 'admin' | 'user' | 'sena') => void;
 }
 
 export default function PinLogin({ onLogin }: Props) {
-  const [mode, setMode] = useState<'select' | 'admin-pin'>('select');
+  const [mode, setMode] = useState<PinMode>('select');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [shake, setShake] = useState(false);
@@ -29,9 +32,12 @@ export default function PinLogin({ onLogin }: Props) {
 
     if (next.length === 4) {
       setTimeout(() => {
-        if (next === ADMIN_PIN) {
+        if (mode === 'admin-pin' && next === ADMIN_PIN) {
           setSession('admin');
           onLogin('admin');
+        } else if (mode === 'sena-pin' && next === SENA_PIN) {
+          setSession('sena');
+          onLogin('sena');
         } else {
           setError('Incorrect PIN');
           setShake(true);
@@ -42,8 +48,11 @@ export default function PinLogin({ onLogin }: Props) {
   };
 
   const handleBack = () => setPin((p) => p.slice(0, -1));
+  const goBack = () => { setMode('select'); setPin(''); setError(''); };
 
   const dots = Array.from({ length: 4 }, (_, i) => i < pin.length);
+
+  const pinLabel = mode === 'admin-pin' ? 'Enter Admin PIN' : 'Enter Sena PIN';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-violet-900 flex flex-col items-center justify-center p-6">
@@ -54,33 +63,41 @@ export default function PinLogin({ onLogin }: Props) {
         </div>
         <h1 className="text-3xl font-bold text-white tracking-wide">MokshaPass</h1>
         <p className="text-purple-300 mt-1">
-          {mode === 'select' ? 'Who are you?' : 'Enter Admin PIN'}
+          {mode === 'select' ? 'Who are you?' : pinLabel}
         </p>
       </div>
 
       {/* Role Selection */}
       {mode === 'select' && (
-        <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
+        <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
           <button
             onClick={handleUserLogin}
-            className="flex flex-col items-center justify-center gap-3 bg-white/10 border border-white/20 rounded-3xl py-8 px-4 active:scale-95 transition-transform hover:bg-white/20"
+            className="flex flex-col items-center justify-center gap-3 bg-white/10 border border-white/20 rounded-3xl py-6 px-2 active:scale-95 transition-transform hover:bg-white/20"
           >
-            <span className="text-5xl">🙏</span>
-            <span className="text-white font-bold text-lg">Guest</span>
+            <span className="text-4xl">🙏</span>
+            <span className="text-white font-bold text-sm">Guest</span>
+          </button>
+
+          <button
+            onClick={() => setMode('sena-pin')}
+            className="flex flex-col items-center justify-center gap-3 bg-white/10 border border-white/20 rounded-3xl py-6 px-2 active:scale-95 transition-transform hover:bg-white/20"
+          >
+            <span className="text-4xl">🤝</span>
+            <span className="text-white font-bold text-sm">Sena</span>
           </button>
 
           <button
             onClick={() => setMode('admin-pin')}
-            className="flex flex-col items-center justify-center gap-3 bg-white/10 border border-white/20 rounded-3xl py-8 px-4 active:scale-95 transition-transform hover:bg-white/20"
+            className="flex flex-col items-center justify-center gap-3 bg-white/10 border border-white/20 rounded-3xl py-6 px-2 active:scale-95 transition-transform hover:bg-white/20"
           >
-            <span className="text-5xl">🔐</span>
-            <span className="text-white font-bold text-lg">Admin</span>
+            <span className="text-4xl">🔐</span>
+            <span className="text-white font-bold text-sm">Admin</span>
           </button>
         </div>
       )}
 
-      {/* Admin PIN Entry */}
-      {mode === 'admin-pin' && (
+      {/* PIN Entry */}
+      {(mode === 'admin-pin' || mode === 'sena-pin') && (
         <>
           <div className={`flex gap-4 mb-6 ${shake ? 'animate-shake' : ''}`}>
             {dots.map((filled, i) => (
@@ -115,7 +132,7 @@ export default function PinLogin({ onLogin }: Props) {
           </div>
 
           <button
-            onClick={() => { setMode('select'); setPin(''); setError(''); }}
+            onClick={goBack}
             className="mt-6 text-purple-300 text-sm hover:text-white transition-colors"
           >
             ← Back

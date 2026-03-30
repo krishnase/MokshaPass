@@ -1,4 +1,4 @@
-import { Guest, SaleRecord, CheckInEntry } from '@/types';
+import { Guest, SaleRecord, CheckInEntry, Volunteer } from '@/types';
 
 /**
  * Fetches guest data from a publicly shared Google Sheet.
@@ -123,11 +123,44 @@ export async function fetchCheckInsFromSheet(): Promise<CheckInEntry[]> {
       rows.push({
         guestName: String(cells[0] || ''),
         guestPhone: String(cells[1] || ''),
-        date: String(cells[2] || ''),
-        time: String(cells[3] || ''),
+        roomNumber: String(cells[2] || ''),
+        peopleCount: Number(cells[3]) || 1,
+        date: String(cells[4] || ''),
+        time: String(cells[5] || ''),
       });
     }
     return rows.filter((r) => r.guestName);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetches volunteers from "Volunteers" tab in Google Sheet.
+ * Columns: Name | Phone | Department | Date | Notes
+ */
+export async function fetchVolunteers(): Promise<Volunteer[]> {
+  if (!SHEET_ID) return [];
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Volunteerlist`;
+    const res = await fetch(url, { cache: 'no-store' });
+    const text = await res.text();
+    const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
+    if (!json.table?.rows?.length) return [];
+    const rows: Volunteer[] = [];
+    for (const row of json.table.rows) {
+      if (!row?.c) continue;
+      const cells = row.c.map((c: { v: unknown } | null) => c?.v ?? '');
+      if (!cells[0]) continue;
+      rows.push({
+        name: String(cells[0] || '').trim(),
+        phone: String(cells[1] || '').trim(),
+        department: String(cells[2] || '').trim(),
+        date: String(cells[3] || '').trim(),
+        notes: String(cells[4] || '').trim(),
+      });
+    }
+    return rows.filter((r) => r.name);
   } catch {
     return [];
   }

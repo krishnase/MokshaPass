@@ -12,6 +12,7 @@ export default function CheckInSystem() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Guest[]>([]);
   const [selected, setSelected] = useState<Guest | null>(null);
+  const [peopleCount, setPeopleCount] = useState(1);
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [emailStatus, setEmailStatus] = useState('');
@@ -44,6 +45,7 @@ export default function CheckInSystem() {
     setQuery(`${guest.firstName} ${guest.lastName}`);
     setShowDropdown(false);
     setEmailStatus('');
+    setPeopleCount(1);
   };
 
   const handleCheckIn = async () => {
@@ -53,6 +55,8 @@ export default function CheckInSystem() {
     const entry = logCheckIn({
       guestPhone: selected.phone,
       guestName: `${selected.firstName} ${selected.lastName}`,
+      roomNumber: selected.roomNumber,
+      peopleCount,
     });
 
     postToSheet({ type: 'checkin', ...entry });
@@ -62,7 +66,6 @@ export default function CheckInSystem() {
     setEmailStatus(result.message);
     setCheckingIn(false);
 
-    // Refresh selected to show checked-in badge
     setSelected({ ...selected, checkedIn: true, checkInTime: new Date().toLocaleTimeString() });
   };
 
@@ -71,6 +74,7 @@ export default function CheckInSystem() {
     setSelected(null);
     setResults([]);
     setEmailStatus('');
+    setPeopleCount(1);
     inputRef.current?.focus();
   };
 
@@ -172,6 +176,33 @@ export default function CheckInSystem() {
             <DetailRow icon="🎟️" label="Ticket Type" value={selected.ticketType} />
             {selected.notes && <DetailRow icon="📝" label="Notes" value={selected.notes} />}
 
+            {/* People Count — only show if not yet checked in */}
+            {!alreadyCheckedIn && !selected.checkedIn && (
+              <div className="bg-purple-50 rounded-2xl p-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-3">
+                  👥 People Checking In
+                </p>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setPeopleCount((n) => Math.max(1, n - 1))}
+                    className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95 transition-transform"
+                  >
+                    −
+                  </button>
+                  <span className="text-3xl font-bold text-purple-700 w-8 text-center">{peopleCount}</span>
+                  <button
+                    onClick={() => setPeopleCount((n) => Math.min(10, n + 1))}
+                    className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95 transition-transform"
+                  >
+                    +
+                  </button>
+                  <span className="text-sm text-gray-500 ml-1">
+                    {peopleCount === 1 ? 'person' : 'people'} · Room {selected.roomNumber}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {selected.checkInTime && (
               <div className="bg-green-50 rounded-xl p-3 text-sm text-green-700 flex items-center gap-2">
                 ✅ Checked in at {selected.checkInTime}
@@ -197,7 +228,7 @@ export default function CheckInSystem() {
                 disabled={checkingIn}
                 className="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold text-lg shadow-md active:scale-95 transition-transform disabled:opacity-50"
               >
-                {checkingIn ? '⏳ Processing...' : '✅ Check In'}
+                {checkingIn ? '⏳ Processing...' : `✅ Check In ${peopleCount > 1 ? `(${peopleCount} people)` : ''}`}
               </button>
             ) : (
               <div className="w-full bg-green-100 text-green-700 py-4 rounded-2xl font-bold text-lg text-center">

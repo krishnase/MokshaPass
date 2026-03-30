@@ -37,11 +37,21 @@ export interface Guest {
   checkInTime?: string;
 }
 
-export type UserRole = 'admin' | 'user' | null;
+export type UserRole = 'admin' | 'user' | 'sena' | null;
+
+export interface Volunteer {
+  name: string;
+  phone: string;
+  department: string;
+  date: string;
+  notes: string;
+}
 
 export interface CheckInEntry {
   guestPhone: string;
   guestName: string;
+  roomNumber: string;
+  peopleCount: number;
   time: string;
   date: string;
 }

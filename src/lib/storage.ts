@@ -111,12 +111,12 @@ export function isCheckedInToday(phone: string): boolean {
 
 const SESSION_KEY = 'moksha_session';
 
-export function getSession(): 'admin' | 'user' | null {
+export function getSession(): 'admin' | 'user' | 'sena' | null {
   if (typeof window === 'undefined') return null;
-  return (localStorage.getItem(SESSION_KEY) as 'admin' | 'user') || null;
+  return (localStorage.getItem(SESSION_KEY) as 'admin' | 'user' | 'sena') || null;
 }
 
-export function setSession(role: 'admin' | 'user'): void {
+export function setSession(role: 'admin' | 'user' | 'sena'): void {
   localStorage.setItem(SESSION_KEY, role);
 }
 

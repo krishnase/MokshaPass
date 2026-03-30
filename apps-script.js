@@ -26,10 +26,10 @@ function doPost(e) {
       let sheet = ss.getSheetByName('CheckIns');
       if (!sheet) {
         sheet = ss.insertSheet('CheckIns');
-        sheet.appendRow(['Guest Name', 'Phone', 'Date', 'Time']);
-        sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+        sheet.appendRow(['Guest Name', 'Phone', 'Room Number', 'People Count', 'Date', 'Time']);
+        sheet.getRange(1, 1, 1, 6).setFontWeight('bold');
       }
-      sheet.appendRow([data.guestName, data.guestPhone, data.date, data.time]);
+      sheet.appendRow([data.guestName, data.guestPhone, data.roomNumber, data.peopleCount, data.date, data.time]);
 
     } else if (data.type === 'sale') {
       let sheet = ss.getSheetByName('Sales');

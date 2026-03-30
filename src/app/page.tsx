@@ -6,17 +6,19 @@ import HomeScreen from '@/components/Home/HomeScreen';
 import SalesForm from '@/components/Sales/SalesForm';
 import InventoryManager from '@/components/Inventory/InventoryManager';
 import CheckInSystem from '@/components/CheckIn/CheckInSystem';
+import VolunteerList from '@/components/Sena/VolunteerList';
 import Image from 'next/image';
 import { getSession, clearSession } from '@/lib/storage';
 import { UserRole } from '@/types';
 
-type Tab = 'home' | 'sales' | 'inventory' | 'checkin';
+type Tab = 'home' | 'sales' | 'inventory' | 'checkin' | 'sena';
 
-const tabs: { id: Tab; label: string; icon: string; adminOnly?: boolean }[] = [
+const tabs: { id: Tab; label: string; icon: string; roles?: UserRole[] }[] = [
   { id: 'home', label: 'Home', icon: '🏠' },
-  { id: 'sales', label: 'MokshaMart', icon: '🪷' },
-  { id: 'inventory', label: 'Inventory', icon: '📦', adminOnly: true },
-  { id: 'checkin', label: 'Check-In', icon: '✅' },
+  { id: 'sales', label: 'MokshaMart', icon: '🪷', roles: ['admin', 'user'] },
+  { id: 'inventory', label: 'Inventory', icon: '📦', roles: ['admin'] },
+  { id: 'checkin', label: 'Check-In', icon: '✅', roles: ['admin', 'user'] },
+  { id: 'sena', label: 'Sena', icon: '🤝', roles: ['admin', 'sena'] },
 ];
 
 export default function Home() {
@@ -37,7 +39,7 @@ export default function Home() {
     return <PinLogin onLogin={(r) => { setActiveTab('home'); setRole(r); }} />;
   }
 
-  const visibleTabs = tabs.filter((t) => !t.adminOnly || role === 'admin');
+  const visibleTabs = tabs.filter((t) => !t.roles || t.roles.includes(role));
 
   const handleLogout = () => {
     clearSession();
@@ -68,11 +70,15 @@ export default function Home() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
         {activeTab === 'home' && (
-          <HomeScreen onNavigate={(tab) => setActiveTab(tab as Tab)} />
+          <HomeScreen onNavigate={(tab) => {
+            if (tab === 'info') setShowInfo(true);
+            else setActiveTab(tab as Tab);
+          }} />
         )}
         {activeTab === 'sales' && <SalesForm />}
         {activeTab === 'inventory' && role === 'admin' && <InventoryManager />}
         {activeTab === 'checkin' && <CheckInSystem />}
+        {activeTab === 'sena' && <VolunteerList />}
       </main>
 
       {/* Bottom Tab Bar */}
@@ -86,9 +92,7 @@ export default function Home() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex flex-col items-center justify-center py-3 gap-0.5 transition-colors active:scale-95 ${
-                activeTab === tab.id
-                  ? 'text-purple-600'
-                  : 'text-gray-400 hover:text-gray-600'
+                activeTab === tab.id ? 'text-purple-600' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <span className={`text-2xl transition-transform ${activeTab === tab.id ? 'scale-110' : 'scale-100'}`}>
@@ -127,21 +131,16 @@ export default function Home() {
               <button onClick={() => setShowInfo(false)} className="text-gray-400 text-2xl leading-none">✕</button>
             </div>
 
-            {/* Room Service */}
             <div className="flex items-start gap-3 bg-purple-50 rounded-2xl p-4">
               <span className="text-2xl shrink-0">🏡</span>
               <div>
                 <p className="font-semibold text-gray-800">LoneOak Ranch — Room Service</p>
-                <a
-                  href="tel:9406682855"
-                  className="text-purple-600 font-bold text-lg mt-0.5 block"
-                >
+                <a href="tel:9406682855" className="text-purple-600 font-bold text-lg mt-0.5 block">
                   940-668-2855
                 </a>
               </div>
             </div>
 
-            {/* WiFi */}
             <div className="flex items-start gap-3 bg-blue-50 rounded-2xl p-4">
               <span className="text-2xl shrink-0">📶</span>
               <div>
