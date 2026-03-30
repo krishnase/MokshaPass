@@ -10,8 +10,8 @@ import { Guest } from '@/types';
  * 3. Set NEXT_PUBLIC_GOOGLE_SHEET_ID in .env.local
  *
  * Expected columns (row 1 = headers):
- *   A: First Name  B: Last Name  C: Phone  D: Email
- *   E: Room Number  F: Schedule Details
+ *   A: Order date  B: Guest first name  C: Guest last name  D: Email
+ *   E: Ticket type  F: Phone Number  G: Room Number  H: Checked In  I: Notes
  */
 
 const SHEET_ID = process.env.NEXT_PUBLIC_GOOGLE_SHEET_ID || '';
@@ -32,17 +32,19 @@ export async function fetchGuests(): Promise<Guest[]> {
       if (!row?.c) continue;
       const cells = row.c.map((c: { v: string | null } | null) => c?.v ?? '');
       rows.push({
-        firstName: String(cells[0] || '').trim(),
-        lastName: String(cells[1] || '').trim(),
-        phone: String(cells[2] || '').trim(),
+        orderDate: String(cells[0] || '').trim(),
+        firstName: String(cells[1] || '').trim(),
+        lastName: String(cells[2] || '').trim(),
         email: String(cells[3] || '').trim(),
-        roomNumber: String(cells[4] || '').trim(),
-        scheduleDetails: String(cells[5] || '').trim(),
+        ticketType: String(cells[4] || '').trim(),
+        phone: String(cells[5] || '').trim(),
+        roomNumber: String(cells[6] || '').trim(),
+        notes: String(cells[8] || '').trim(),
       });
     }
 
     // Filter out header-like empty rows
-    return rows.filter((r) => r.firstName || r.lastName || r.phone);
+    return rows.filter((r) => r.firstName || r.lastName || r.phone || r.email);
   } catch {
     console.error('Failed to fetch Google Sheet, using mock data');
     return getMockGuests();
@@ -63,44 +65,54 @@ export function searchGuests(guests: Guest[], query: string): Guest[] {
 function getMockGuests(): Guest[] {
   return [
     {
+      orderDate: '2026-03-01',
       firstName: 'Priya',
       lastName: 'Sharma',
-      phone: '555-100-2001',
       email: 'priya.sharma@email.com',
+      ticketType: 'Weekend Retreat',
+      phone: '555-100-2001',
       roomNumber: '101',
-      scheduleDetails: 'Morning Yoga 7am, Meditation 9am, Ayurvedic Massage 2pm',
+      notes: '',
     },
     {
+      orderDate: '2026-03-02',
       firstName: 'Arjun',
       lastName: 'Patel',
-      phone: '555-100-2002',
       email: 'arjun.patel@email.com',
+      ticketType: 'Full Program',
+      phone: '555-100-2002',
       roomNumber: '205',
-      scheduleDetails: 'Sound Bath 10am, Breathwork 1pm, Evening Ceremony 6pm',
+      notes: 'Vegetarian meals',
     },
     {
+      orderDate: '2026-03-02',
       firstName: 'Maya',
       lastName: 'Nair',
-      phone: '555-100-2003',
       email: 'maya.nair@email.com',
+      ticketType: 'Day Pass',
+      phone: '555-100-2003',
       roomNumber: '312',
-      scheduleDetails: 'Kundalini Yoga 8am, Nutrition Talk 11am, Spa Treatment 3pm',
+      notes: '',
     },
     {
+      orderDate: '2026-03-03',
       firstName: 'Rohan',
       lastName: 'Mehta',
-      phone: '555-100-2004',
       email: 'rohan.mehta@email.com',
+      ticketType: 'Weekend Retreat',
+      phone: '555-100-2004',
       roomNumber: '118',
-      scheduleDetails: 'Sunrise Meditation 6am, Yoga Flow 8am, Cooking Class 12pm',
+      notes: 'Early arrival requested',
     },
     {
+      orderDate: '2026-03-03',
       firstName: 'Anita',
       lastName: 'Krishnan',
-      phone: '555-100-2005',
       email: 'anita.krishnan@email.com',
+      ticketType: 'Full Program',
+      phone: '555-100-2005',
       roomNumber: '220',
-      scheduleDetails: 'Chakra Alignment 9am, Silent Walk 11am, Fire Ceremony 7pm',
+      notes: '',
     },
   ];
 }

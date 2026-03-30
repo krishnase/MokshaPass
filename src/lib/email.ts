@@ -6,7 +6,7 @@ import { Guest } from '@/types';
  * 1. Create free account at https://www.emailjs.com
  * 2. Add Email Service (Gmail, Outlook, etc.)
  * 3. Create Email Template with these variables:
- *    {{to_name}}, {{to_email}}, {{room_number}}, {{schedule}}, {{message}}
+ *    {{to_name}}, {{to_email}}, {{room_number}}, {{ticket_type}}, {{notes}}, {{message}}
  * 4. Copy Service ID, Template ID, Public Key → .env.local
  */
 
@@ -30,11 +30,12 @@ export async function sendCheckInEmail(guest: Guest): Promise<{ success: boolean
         to_name: `${guest.firstName} ${guest.lastName}`,
         to_email: guest.email,
         room_number: guest.roomNumber,
-        schedule: guest.scheduleDetails,
+        ticket_type: guest.ticketType,
+        notes: guest.notes,
         message: `Welcome to MokshaMart! You have been successfully checked in.
 
 Room: ${guest.roomNumber}
-Schedule: ${guest.scheduleDetails}
+Ticket Type: ${guest.ticketType}${guest.notes ? `\nNotes: ${guest.notes}` : ''}
 
 We hope you enjoy your experience. Please don't hesitate to contact staff if you need anything.
 

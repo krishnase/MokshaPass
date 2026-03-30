@@ -25,12 +25,14 @@ export interface SaleRecord {
 }
 
 export interface Guest {
+  orderDate: string;
   firstName: string;
   lastName: string;
-  phone: string;
   email: string;
+  ticketType: string;
+  phone: string;
   roomNumber: string;
-  scheduleDetails: string;
+  notes: string;
   checkedIn?: boolean;
   checkInTime?: string;
 }

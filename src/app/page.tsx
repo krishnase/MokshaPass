@@ -2,25 +2,26 @@
 
 import { useState, useEffect } from 'react';
 import PinLogin from '@/components/Auth/PinLogin';
+import HomeScreen from '@/components/Home/HomeScreen';
 import SalesForm from '@/components/Sales/SalesForm';
 import InventoryManager from '@/components/Inventory/InventoryManager';
 import CheckInSystem from '@/components/CheckIn/CheckInSystem';
-import MokshaMartInfo from '@/components/MokshaMart/MokshaMartInfo';
+import Image from 'next/image';
 import { getSession, clearSession } from '@/lib/storage';
 import { UserRole } from '@/types';
 
-type Tab = 'sales' | 'inventory' | 'checkin' | 'mart';
+type Tab = 'home' | 'sales' | 'inventory' | 'checkin';
 
 const tabs: { id: Tab; label: string; icon: string; adminOnly?: boolean }[] = [
-  { id: 'sales', label: 'Sales', icon: '🛒' },
+  { id: 'home', label: 'Home', icon: '🏠' },
+  { id: 'sales', label: 'MokshaMart', icon: '🪷' },
   { id: 'inventory', label: 'Inventory', icon: '📦', adminOnly: true },
   { id: 'checkin', label: 'Check-In', icon: '✅' },
-  { id: 'mart', label: 'MokshaMart', icon: '🕉️' },
 ];
 
 export default function Home() {
   const [role, setRole] = useState<UserRole>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('sales');
+  const [activeTab, setActiveTab] = useState<Tab>('home');
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function Home() {
   if (!hydrated) return null;
 
   if (!role) {
-    return <PinLogin onLogin={(r) => setRole(r)} />;
+    return <PinLogin onLogin={(r) => { setActiveTab('home'); setRole(r); }} />;
   }
 
   const visibleTabs = tabs.filter((t) => !t.adminOnly || role === 'admin');
@@ -47,7 +48,9 @@ export default function Home() {
       {/* Top Bar */}
       <header className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">🕉️</span>
+          <div className="w-9 h-9 relative shrink-0">
+            <Image src="/logo.png" alt="Logo" fill className="object-contain" />
+          </div>
           <div>
             <h1 className="font-bold text-gray-800 leading-none text-lg">MokshaPass</h1>
             <p className="text-xs text-purple-500 capitalize">{role} account</p>
@@ -63,10 +66,12 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
+        {activeTab === 'home' && (
+          <HomeScreen onNavigate={(tab) => setActiveTab(tab as Tab)} />
+        )}
         {activeTab === 'sales' && <SalesForm />}
         {activeTab === 'inventory' && role === 'admin' && <InventoryManager />}
         {activeTab === 'checkin' && <CheckInSystem />}
-        {activeTab === 'mart' && <MokshaMartInfo />}
       </main>
 
       {/* Bottom Tab Bar */}

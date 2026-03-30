@@ -6,11 +6,14 @@ import {
   addInventoryItem,
   updateInventoryItem,
   deleteInventoryItem,
+  getSales,
 } from '@/lib/storage';
-import { InventoryItem } from '@/types';
+import { InventoryItem, SaleRecord } from '@/types';
 
 export default function InventoryManager() {
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [sales, setSales] = useState<SaleRecord[]>([]);
+  const [activeSection, setActiveSection] = useState<'inventory' | 'sales'>('inventory');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [name, setName] = useState('');
@@ -19,7 +22,10 @@ export default function InventoryManager() {
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const refresh = () => setItems(getInventory());
+  const refresh = () => {
+    setItems(getInventory());
+    setSales(getSales());
+  };
   useEffect(() => { refresh(); }, []);
 
   const openAdd = () => {
@@ -70,77 +76,163 @@ export default function InventoryManager() {
   };
 
   const totalValue = items.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const totalItems = items.reduce((sum, i) => sum + i.qty, 0);
+  const totalSalesRevenue = sales.reduce((sum, s) => sum + s.total, 0);
+  const todaySales = sales.filter((s) => s.date === new Date().toLocaleDateString());
+  const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
 
   return (
     <div className="p-4 max-w-lg mx-auto pb-24">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-gray-800">Inventory</h2>
+      <h2 className="text-2xl font-bold text-gray-800 mb-4">Admin Dashboard</h2>
+
+      {/* Section Toggle */}
+      <div className="flex bg-gray-100 rounded-2xl p-1 mb-5">
         <button
-          onClick={openAdd}
-          className="bg-purple-600 text-white px-4 py-2 rounded-xl font-semibold text-sm active:scale-95 transition-transform flex items-center gap-1"
+          onClick={() => setActiveSection('inventory')}
+          className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors ${
+            activeSection === 'inventory'
+              ? 'bg-white text-purple-700 shadow-sm'
+              : 'text-gray-500'
+          }`}
         >
-          + Add Item
+          📦 Inventory
+        </button>
+        <button
+          onClick={() => setActiveSection('sales')}
+          className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors ${
+            activeSection === 'sales'
+              ? 'bg-white text-purple-700 shadow-sm'
+              : 'text-gray-500'
+          }`}
+        >
+          🪷 Sales
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-purple-50 rounded-2xl p-3 text-center">
-          <p className="text-2xl font-bold text-purple-700">{items.length}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Products</p>
-        </div>
-        <div className="bg-green-50 rounded-2xl p-3 text-center">
-          <p className="text-2xl font-bold text-green-700">${totalValue.toFixed(0)}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Stock Value</p>
-        </div>
-      </div>
-
-      {/* Items Table */}
-      {items.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <span className="text-5xl block mb-3">📦</span>
-          <p>No items yet. Add your first product!</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3"
+      {/* ── INVENTORY SECTION ── */}
+      {activeSection === 'inventory' && (
+        <>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-gray-500">{items.length} products</p>
+            <button
+              onClick={openAdd}
+              className="bg-purple-600 text-white px-4 py-2 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
             >
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-800 truncate">{item.name}</p>
-                <div className="flex items-center gap-3 mt-0.5">
-                  <span className="text-purple-600 font-medium">${item.price.toFixed(2)}</span>
-                  <span className={`text-sm px-2 py-0.5 rounded-full font-medium ${
-                    item.qty === 0
-                      ? 'bg-red-100 text-red-600'
-                      : item.qty < 10
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-green-100 text-green-700'
-                  }`}>
-                    {item.qty === 0 ? 'Out of Stock' : `${item.qty} left`}
-                  </span>
-                </div>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={() => openEdit(item)}
-                  className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg active:scale-95"
-                >
-                  ✏️
-                </button>
-                <button
-                  onClick={() => setDeleteConfirm(item.id)}
-                  className="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-lg active:scale-95"
-                >
-                  🗑️
-                </button>
-              </div>
+              + Add Item
+            </button>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-purple-50 rounded-2xl p-3 text-center">
+              <p className="text-2xl font-bold text-purple-700">{items.length}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Products</p>
             </div>
-          ))}
-        </div>
+            <div className="bg-green-50 rounded-2xl p-3 text-center">
+              <p className="text-2xl font-bold text-green-700">${totalValue.toFixed(0)}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Stock Value</p>
+            </div>
+          </div>
+
+          {items.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <span className="text-5xl block mb-3">📦</span>
+              <p>No items yet. Add your first product!</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-800 truncate">{item.name}</p>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <span className="text-purple-600 font-medium">${item.price.toFixed(2)}</span>
+                      <span className={`text-sm px-2 py-0.5 rounded-full font-medium ${
+                        item.qty === 0
+                          ? 'bg-red-100 text-red-600'
+                          : item.qty < 10
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-green-100 text-green-700'
+                      }`}>
+                        {item.qty === 0 ? 'Out of Stock' : `${item.qty} left`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => openEdit(item)}
+                      className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg active:scale-95"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm(item.id)}
+                      className="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-lg active:scale-95"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── SALES SECTION ── */}
+      {activeSection === 'sales' && (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-orange-50 rounded-2xl p-3 text-center">
+              <p className="text-2xl font-bold text-orange-600">${todayRevenue.toFixed(0)}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Today's Revenue</p>
+            </div>
+            <div className="bg-green-50 rounded-2xl p-3 text-center">
+              <p className="text-2xl font-bold text-green-700">${totalSalesRevenue.toFixed(0)}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Total Revenue</p>
+            </div>
+          </div>
+
+          {sales.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <span className="text-5xl block mb-3">🪷</span>
+              <p>No sales recorded yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {[...sales].reverse().map((sale) => (
+                <div
+                  key={sale.id}
+                  className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <div>
+                      <p className="font-semibold text-gray-800">{sale.customerName}</p>
+                      <p className="text-xs text-gray-400">{sale.date} · {sale.phone}</p>
+                    </div>
+                    <span className="text-green-700 font-bold text-base">${sale.total.toFixed(2)}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
+                      {sale.item} × {sale.qty}
+                    </span>
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                      {sale.payment}
+                    </span>
+                    {sale.delivery && (
+                      <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
+                        Delivery
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Add/Edit Modal */}

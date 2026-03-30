@@ -54,7 +54,7 @@ export default function MokshaMartInfo() {
     <div className="pb-24">
       {/* Hero */}
       <div className="bg-gradient-to-br from-purple-700 via-indigo-700 to-violet-800 px-6 py-10 text-white text-center">
-        <div className="text-5xl mb-3">🕉️</div>
+        <div className="text-5xl mb-3">🪷</div>
         <h1 className="text-3xl font-bold mb-2">MokshaMart</h1>
         <p className="text-purple-200 text-base max-w-xs mx-auto">
           Your wellness marketplace for mindful living

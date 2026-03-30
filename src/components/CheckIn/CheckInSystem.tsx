@@ -27,6 +27,7 @@ export default function CheckInSystem() {
   }, []);
 
   useEffect(() => {
+    if (selected) return;
     if (query.trim().length >= 2) {
       const found = searchGuests(guests, query);
       setResults(found);
@@ -35,7 +36,7 @@ export default function CheckInSystem() {
       setResults([]);
       setShowDropdown(false);
     }
-  }, [query, guests]);
+  }, [query, guests, selected]);
 
   const selectGuest = (guest: Guest) => {
     setSelected(guest);
@@ -166,7 +167,8 @@ export default function CheckInSystem() {
           <div className="p-4 space-y-3">
             <DetailRow icon="📧" label="Email" value={selected.email} />
             <DetailRow icon="🏠" label="Room" value={selected.roomNumber} />
-            <DetailRow icon="📅" label="Schedule" value={selected.scheduleDetails} />
+            <DetailRow icon="🎟️" label="Ticket Type" value={selected.ticketType} />
+            {selected.notes && <DetailRow icon="📝" label="Notes" value={selected.notes} />}
 
             {selected.checkInTime && (
               <div className="bg-green-50 rounded-xl p-3 text-sm text-green-700 flex items-center gap-2">
