@@ -161,7 +161,8 @@ export async function fetchVolunteers(): Promise<Volunteer[]> {
       });
     }
     return rows.filter((r) => r.name);
-  } catch {
+  } catch (err) {
+    console.error('fetchVolunteers error:', err);
     return [];
   }
 }

@@ -36,7 +36,7 @@ export default function Home() {
   if (!hydrated) return null;
 
   if (!role) {
-    return <PinLogin onLogin={(r) => { setActiveTab('home'); setRole(r); }} />;
+    return <PinLogin onLogin={(r) => { setActiveTab(r === 'sena' ? 'sena' : 'home'); setRole(r); }} />;
   }
 
   const visibleTabs = tabs.filter((t) => !t.roles || t.roles.includes(role));
