@@ -54,6 +54,12 @@ function doPost(e) {
         data.address || '',
         data.timestamp,
       ]);
+
+    } else if (data.type === 'pdf') {
+      const folder = DriveApp.getFolderById(data.folderId);
+      const bytes = Utilities.base64Decode(data.content);
+      const blob = Utilities.newBlob(bytes, 'application/pdf', data.filename);
+      folder.createFile(blob);
     }
 
     return ContentService

@@ -20,7 +20,7 @@ export async function fetchGuests(): Promise<Guest[]> {
   if (!SHEET_ID) return getMockGuests();
 
   try {
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=V2_03_22_Guest%20list`;
     const res = await fetch(url, { cache: 'no-store' });
     const text = await res.text();
 
@@ -30,21 +30,31 @@ export async function fetchGuests(): Promise<Guest[]> {
 
     for (const row of json.table.rows) {
       if (!row?.c) continue;
-      const cells = row.c.map((c: { v: string | null } | null) => c?.v ?? '');
+      const cell = (i: number) => {
+        const c = row.c[i];
+        if (!c) return '';
+        // Use formatted value ("f") for numbers like phone — avoids scientific notation
+        return String(c.f ?? c.v ?? '').trim();
+      };
       rows.push({
-        orderDate: String(cells[0] || '').trim(),
-        firstName: String(cells[1] || '').trim(),
-        lastName: String(cells[2] || '').trim(),
-        email: String(cells[3] || '').trim(),
-        ticketType: String(cells[4] || '').trim(),
-        phone: String(cells[5] || '').trim(),
-        roomNumber: String(cells[6] || '').trim(),
-        notes: String(cells[8] || '').trim(),
+        orderDate: cell(0),
+        firstName: cell(1),
+        lastName: cell(2),
+        email: cell(3),
+        ticketType: cell(4),
+        phone: cell(5),
+        roomNumber: cell(6),
+        notes: cell(8),
       });
     }
 
-    // Filter out header-like empty rows
-    return rows.filter((r) => r.firstName || r.lastName || r.phone || r.email);
+    // Filter out empty rows and header rows
+    return rows.filter(
+      (r) =>
+        (r.firstName || r.lastName || r.phone || r.email) &&
+        r.firstName.toLowerCase() !== 'guest first name' &&
+        r.firstName.toLowerCase() !== 'first name'
+    );
   } catch {
     console.error('Failed to fetch Google Sheet, using mock data');
     return getMockGuests();
@@ -54,11 +64,12 @@ export async function fetchGuests(): Promise<Guest[]> {
 export function searchGuests(guests: Guest[], query: string): Guest[] {
   if (!query.trim()) return [];
   const q = query.toLowerCase().trim();
+  const qDigits = q.replace(/\D/g, '');
   return guests.filter(
     (g) =>
       g.firstName.toLowerCase().includes(q) ||
       g.lastName.toLowerCase().includes(q) ||
-      g.phone.replace(/\D/g, '').includes(q.replace(/\D/g, ''))
+      (qDigits.length > 0 && g.phone.replace(/\D/g, '').includes(qDigits))
   );
 }
 

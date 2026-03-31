@@ -6,6 +6,7 @@ import { postToSheet } from '@/lib/api';
 import { logCheckIn, isCheckedInToday, getTodayCheckInCount } from '@/lib/storage';
 import { sendCheckInEmail } from '@/lib/email';
 import { Guest } from '@/types';
+import ConsentModal from './ConsentModal';
 
 type PersonDetail = { name: string; age: string };
 
@@ -36,8 +37,17 @@ export default function CheckInSystem() {
   const [walkInPeopleCount, setWalkInPeopleCount] = useState(1);
   const [walkInPeopleDetails, setWalkInPeopleDetails] = useState<PersonDetail[]>([{ name: '', age: '' }]);
   const [walkInError, setWalkInError] = useState('');
+  const [showConsent, setShowConsent] = useState(false);
+  const [consentPeople, setConsentPeople] = useState<PersonDetail[]>([]);
+  const [consentPhone, setConsentPhone] = useState('');
+  const pendingWalkIn = useRef<{ guest: Guest; entry: Parameters<typeof logCheckIn>[0]; notes: string; peopleNote: string } | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fullName = `${walkInFirstName} ${walkInLastName}`.trim();
+    setWalkInPeopleDetails((d) => d.map((p, i) => i === 0 ? { ...p, name: fullName } : p));
+  }, [walkInFirstName, walkInLastName]);
 
   useEffect(() => {
     fetchGuests().then((data) => { setGuests(data); setLoading(false); });
@@ -77,10 +87,18 @@ export default function CheckInSystem() {
     setShowDropdown(false);
     setEmailStatus('');
     setPeopleCount(1);
-    setPeopleDetails([{ name: '', age: '' }]);
+    setPeopleDetails([{ name: `${guest.firstName} ${guest.lastName}`.trim(), age: '' }]);
   };
 
-  const handleCheckIn = async () => {
+  const handleCheckIn = () => {
+    if (!selected) return;
+    // Show consent modal before completing check-in
+    setConsentPeople(peopleDetails.filter((p) => p.name.trim()).map((p) => ({ name: p.name.trim(), age: p.age })));
+    setConsentPhone(selected.phone);
+    setShowConsent(true);
+  };
+
+  const doCheckIn = async () => {
     if (!selected) return;
     setCheckingIn(true);
 
@@ -128,18 +146,28 @@ export default function CheckInSystem() {
       notes,
     };
 
-    const entry = logCheckIn({
-      guestPhone: walkInGuest.phone,
-      guestName: `${walkInGuest.firstName} ${walkInGuest.lastName}`,
-      roomNumber: '',
-      peopleCount: walkInPeopleCount,
-    });
+    pendingWalkIn.current = {
+      guest: walkInGuest,
+      entry: { guestPhone: walkInGuest.phone, guestName: `${walkInGuest.firstName} ${walkInGuest.lastName}`, roomNumber: '', peopleCount: walkInPeopleCount },
+      notes,
+      peopleNote,
+    };
 
-    postToSheet({ type: 'checkin', ...entry, notes, ticketType: 'Walk-in', peopleDetails: peopleNote });
-    setTodayCount(getTodayCheckInCount());
-    setSelected({ ...walkInGuest, checkedIn: true, checkInTime: new Date().toLocaleTimeString() });
     setShowWalkIn(false);
-    setQuery(`${walkInGuest.firstName} ${walkInGuest.lastName}`);
+    setConsentPeople(walkInPeopleDetails.filter((p) => p.name.trim()).map((p) => ({ name: p.name.trim(), age: p.age })));
+    setConsentPhone(walkInPhone.trim());
+    setShowConsent(true);
+  };
+
+  const doWalkInCheckIn = () => {
+    const pending = pendingWalkIn.current;
+    if (!pending) return;
+    const entry = logCheckIn(pending.entry);
+    postToSheet({ type: 'checkin', ...entry, notes: pending.notes, ticketType: 'Walk-in', peopleDetails: pending.peopleNote });
+    setTodayCount(getTodayCheckInCount());
+    setSelected({ ...pending.guest, checkedIn: true, checkInTime: new Date().toLocaleTimeString() });
+    setQuery(`${pending.guest.firstName} ${pending.guest.lastName}`);
+    pendingWalkIn.current = null;
   };
 
   const handleClear = () => {
@@ -264,8 +292,9 @@ export default function CheckInSystem() {
                       type="text"
                       placeholder={`Person ${i + 1} full name`}
                       value={p.name}
+                      readOnly={i === 0}
                       onChange={(e) => updatePerson(peopleDetails, setPeopleDetails, i, 'name', e.target.value)}
-                      className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      className={`border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 ${i === 0 ? 'bg-gray-50 border-gray-200 text-gray-500' : 'border-gray-200'}`}
                     />
                     <input
                       type="number"
@@ -369,8 +398,9 @@ export default function CheckInSystem() {
                     type="text"
                     placeholder={`Person ${i + 1} full name`}
                     value={p.name}
+                    readOnly={i === 0}
                     onChange={(e) => updatePerson(walkInPeopleDetails, setWalkInPeopleDetails, i, 'name', e.target.value)}
-                    className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className={`border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 ${i === 0 ? 'bg-gray-50 border-gray-200 text-gray-500' : 'border-gray-200'}`}
                   />
                   <input
                     type="number"
@@ -406,6 +436,27 @@ export default function CheckInSystem() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Consent Modal */}
+      {showConsent && (
+        <ConsentModal
+          people={consentPeople}
+          primaryPhone={consentPhone}
+          onComplete={() => {
+            setShowConsent(false);
+            if (pendingWalkIn.current) {
+              doWalkInCheckIn();
+            } else {
+              doCheckIn();
+            }
+          }}
+          onCancel={() => {
+            setShowConsent(false);
+            pendingWalkIn.current = null;
+            setCheckingIn(false);
+          }}
+        />
       )}
     </div>
   );
