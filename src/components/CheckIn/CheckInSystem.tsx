@@ -7,12 +7,19 @@ import { logCheckIn, isCheckedInToday, getTodayCheckInCount } from '@/lib/storag
 import { sendCheckInEmail } from '@/lib/email';
 import { Guest } from '@/types';
 
+type PersonDetail = { name: string; age: string };
+
+function buildPeopleDetails(count: number, current: PersonDetail[]): PersonDetail[] {
+  return Array.from({ length: count }, (_, i) => current[i] ?? { name: '', age: '' });
+}
+
 export default function CheckInSystem() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Guest[]>([]);
   const [selected, setSelected] = useState<Guest | null>(null);
   const [peopleCount, setPeopleCount] = useState(1);
+  const [peopleDetails, setPeopleDetails] = useState<PersonDetail[]>([{ name: '', age: '' }]);
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [, setEmailStatus] = useState('');
@@ -27,15 +34,13 @@ export default function CheckInSystem() {
   const [walkInPayment, setWalkInPayment] = useState<'Cash' | 'Zelle' | 'Check' | ''>('');
   const [walkInAmount, setWalkInAmount] = useState('');
   const [walkInPeopleCount, setWalkInPeopleCount] = useState(1);
+  const [walkInPeopleDetails, setWalkInPeopleDetails] = useState<PersonDetail[]>([{ name: '', age: '' }]);
   const [walkInError, setWalkInError] = useState('');
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchGuests().then((data) => {
-      setGuests(data);
-      setLoading(false);
-    });
+    fetchGuests().then((data) => { setGuests(data); setLoading(false); });
     setTodayCount(getTodayCheckInCount());
   }, []);
 
@@ -51,17 +56,38 @@ export default function CheckInSystem() {
     }
   }, [query, guests, selected]);
 
+  const updatePeopleCount = (n: number) => {
+    setPeopleCount(n);
+    setPeopleDetails((d) => buildPeopleDetails(n, d));
+  };
+
+  const updateWalkInPeopleCount = (n: number) => {
+    setWalkInPeopleCount(n);
+    setWalkInPeopleDetails((d) => buildPeopleDetails(n, d));
+  };
+
+  const updatePerson = (list: PersonDetail[], setList: (v: PersonDetail[]) => void, idx: number, field: 'name' | 'age', value: string) => {
+    const updated = list.map((p, i) => i === idx ? { ...p, [field]: value } : p);
+    setList(updated);
+  };
+
   const selectGuest = (guest: Guest) => {
     setSelected(guest);
     setQuery(`${guest.firstName} ${guest.lastName}`);
     setShowDropdown(false);
     setEmailStatus('');
     setPeopleCount(1);
+    setPeopleDetails([{ name: '', age: '' }]);
   };
 
   const handleCheckIn = async () => {
     if (!selected) return;
     setCheckingIn(true);
+
+    const peopleNote = peopleDetails
+      .filter((p) => p.name.trim())
+      .map((p, i) => `${i + 1}. ${p.name.trim()}${p.age ? ` (age ${p.age})` : ''}`)
+      .join(', ');
 
     const entry = logCheckIn({
       guestPhone: selected.phone,
@@ -70,19 +96,26 @@ export default function CheckInSystem() {
       peopleCount,
     });
 
-    postToSheet({ type: 'checkin', ...entry });
+    postToSheet({ type: 'checkin', ...entry, peopleDetails: peopleNote });
     setTodayCount(getTodayCheckInCount());
 
     const result = await sendCheckInEmail(selected);
     setEmailStatus(result.message);
     setCheckingIn(false);
-
     setSelected({ ...selected, checkedIn: true, checkInTime: new Date().toLocaleTimeString() });
   };
 
   const handleWalkInCheckIn = () => {
     if (!walkInFirstName.trim()) { setWalkInError('First name is required'); return; }
     if (!walkInPhone.trim()) { setWalkInError('Phone number is required'); return; }
+
+    const peopleNote = walkInPeopleDetails
+      .filter((p) => p.name.trim())
+      .map((p, i) => `${i + 1}. ${p.name.trim()}${p.age ? ` (age ${p.age})` : ''}`)
+      .join(', ');
+
+    const donationNote = walkInPayment ? `Donation: $${walkInAmount || '0'} via ${walkInPayment}` : '';
+    const notes = [donationNote, peopleNote].filter(Boolean).join(' | ');
 
     const walkInGuest: Guest = {
       orderDate: new Date().toLocaleDateString(),
@@ -92,7 +125,7 @@ export default function CheckInSystem() {
       ticketType: 'Walk-in',
       phone: walkInPhone.trim(),
       roomNumber: '',
-      notes: walkInPayment ? `Donation: $${walkInAmount || '0'} via ${walkInPayment}` : '',
+      notes,
     };
 
     const entry = logCheckIn({
@@ -102,13 +135,7 @@ export default function CheckInSystem() {
       peopleCount: walkInPeopleCount,
     });
 
-    postToSheet({
-      type: 'checkin',
-      ...entry,
-      notes: walkInGuest.notes,
-      ticketType: 'Walk-in',
-    });
-
+    postToSheet({ type: 'checkin', ...entry, notes, ticketType: 'Walk-in', peopleDetails: peopleNote });
     setTodayCount(getTodayCheckInCount());
     setSelected({ ...walkInGuest, checkedIn: true, checkInTime: new Date().toLocaleTimeString() });
     setShowWalkIn(false);
@@ -116,17 +143,15 @@ export default function CheckInSystem() {
   };
 
   const handleClear = () => {
-    setQuery('');
-    setSelected(null);
-    setResults([]);
-    setEmailStatus('');
-    setPeopleCount(1);
+    setQuery(''); setSelected(null); setResults([]);
+    setEmailStatus(''); setPeopleCount(1); setPeopleDetails([{ name: '', age: '' }]);
     inputRef.current?.focus();
   };
 
   const resetWalkIn = () => {
-    setWalkInFirstName(''); setWalkInLastName('');
-    setWalkInPhone(''); setWalkInPayment(''); setWalkInAmount(''); setWalkInPeopleCount(1);
+    setWalkInFirstName(''); setWalkInLastName(''); setWalkInPhone('');
+    setWalkInPayment(''); setWalkInAmount('');
+    setWalkInPeopleCount(1); setWalkInPeopleDetails([{ name: '', age: '' }]);
     setWalkInError(''); setShowWalkIn(false);
   };
 
@@ -148,7 +173,7 @@ export default function CheckInSystem() {
 
       {/* Search */}
       <div className="relative mb-3">
-        <div className="flex items-center bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-purple-400 focus-within:border-purple-400">
+        <div className="flex items-center bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-purple-400">
           <span className="pl-4 text-gray-400 text-xl">🔍</span>
           <input
             ref={inputRef}
@@ -158,19 +183,14 @@ export default function CheckInSystem() {
             onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
             className="flex-1 px-3 py-4 text-base bg-transparent focus:outline-none"
           />
-          {query && (
-            <button onClick={handleClear} className="pr-4 text-gray-400 text-xl">✕</button>
-          )}
+          {query && <button onClick={handleClear} className="pr-4 text-gray-400 text-xl">✕</button>}
         </div>
 
         {showDropdown && (
           <div className="absolute z-10 w-full mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
             {results.slice(0, 5).map((g, idx) => (
-              <button
-                key={idx}
-                onClick={() => selectGuest(g)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-purple-50 text-left border-b border-gray-50 last:border-0"
-              >
+              <button key={idx} onClick={() => selectGuest(g)}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-purple-50 text-left border-b border-gray-50 last:border-0">
                 <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 font-bold text-sm shrink-0">
                   {g.firstName[0]}{g.lastName[0]}
                 </div>
@@ -189,10 +209,8 @@ export default function CheckInSystem() {
 
       {/* Walk-in Button */}
       {!selected && (
-        <button
-          onClick={() => setShowWalkIn(true)}
-          className="w-full mb-4 border-2 border-dashed border-purple-200 text-purple-600 py-3 rounded-2xl font-semibold text-sm active:scale-95 transition-transform hover:border-purple-400 hover:bg-purple-50"
-        >
+        <button onClick={() => setShowWalkIn(true)}
+          className="w-full mb-4 border-2 border-dashed border-purple-200 text-purple-600 py-3 rounded-2xl font-semibold text-sm active:scale-95 transition-transform hover:border-purple-400 hover:bg-purple-50">
           + Add Walk-in Guest
         </button>
       )}
@@ -232,14 +250,33 @@ export default function CheckInSystem() {
             {selected.notes && <DetailRow icon="📝" label="Notes" value={selected.notes} />}
 
             {!alreadyCheckedIn && !selected.checkedIn && selected.ticketType !== 'Walk-in' && (
-              <div className="bg-purple-50 rounded-2xl p-4">
-                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-3">👥 People Checking In</p>
+              <div className="bg-purple-50 rounded-2xl p-4 space-y-3">
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">👥 People Checking In</p>
                 <div className="flex items-center gap-4">
-                  <button onClick={() => setPeopleCount((n) => Math.max(1, n - 1))} className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95">−</button>
+                  <button onClick={() => updatePeopleCount(Math.max(1, peopleCount - 1))} className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95">−</button>
                   <span className="text-3xl font-bold text-purple-700 w-8 text-center">{peopleCount}</span>
-                  <button onClick={() => setPeopleCount((n) => Math.min(10, n + 1))} className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95">+</button>
+                  <button onClick={() => updatePeopleCount(Math.min(10, peopleCount + 1))} className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95">+</button>
                   <span className="text-sm text-gray-500 ml-1">{peopleCount === 1 ? 'person' : 'people'}</span>
                 </div>
+                {peopleDetails.map((p, i) => (
+                  <div key={i} className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder={`Person ${i + 1} full name`}
+                      value={p.name}
+                      onChange={(e) => updatePerson(peopleDetails, setPeopleDetails, i, 'name', e.target.value)}
+                      className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Age"
+                      value={p.age}
+                      onChange={(e) => updatePerson(peopleDetails, setPeopleDetails, i, 'age', e.target.value)}
+                      min="0"
+                      className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    />
+                  </div>
+                ))}
               </div>
             )}
 
@@ -252,11 +289,8 @@ export default function CheckInSystem() {
 
           <div className="p-4 pt-0 space-y-2">
             {!alreadyCheckedIn && !selected.checkedIn ? (
-              <button
-                onClick={handleCheckIn}
-                disabled={checkingIn}
-                className="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold text-lg shadow-md active:scale-95 transition-transform disabled:opacity-50"
-              >
+              <button onClick={handleCheckIn} disabled={checkingIn}
+                className="w-full bg-purple-600 text-white py-4 rounded-2xl font-bold text-lg shadow-md active:scale-95 transition-transform disabled:opacity-50">
                 {checkingIn ? '⏳ Processing...' : `✅ Check In ${peopleCount > 1 ? `(${peopleCount} people)` : ''}`}
               </button>
             ) : (
@@ -290,96 +324,85 @@ export default function CheckInSystem() {
       {/* Walk-in Modal */}
       {showWalkIn && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4" onClick={resetWalkIn}>
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 space-y-4 mb-2" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 space-y-4 mb-2 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold text-gray-800">Walk-in Guest</h3>
               <button onClick={resetWalkIn} className="text-gray-400 text-2xl leading-none">✕</button>
             </div>
 
-            {walkInError && (
-              <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3">⚠️ {walkInError}</p>
-            )}
+            {walkInError && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3">⚠️ {walkInError}</p>}
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">First Name *</label>
-                <input
-                  type="text"
-                  placeholder="First name"
-                  value={walkInFirstName}
+                <input type="text" placeholder="First name" value={walkInFirstName}
                   onChange={(e) => setWalkInFirstName(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400"
-                />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400" />
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Last Name</label>
-                <input
-                  type="text"
-                  placeholder="Last name"
-                  value={walkInLastName}
+                <input type="text" placeholder="Last name" value={walkInLastName}
                   onChange={(e) => setWalkInLastName(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400"
-                />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400" />
               </div>
             </div>
 
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Phone Number *</label>
-              <input
-                type="tel"
-                placeholder="Phone number"
-                value={walkInPhone}
+              <input type="tel" placeholder="Phone number" value={walkInPhone}
                 onChange={(e) => setWalkInPhone(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400"
-              />
+                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400" />
             </div>
 
-            <div className="bg-purple-50 rounded-2xl p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-3">👥 People Checking In</p>
+            {/* People Checking In */}
+            <div className="bg-purple-50 rounded-2xl p-4 space-y-3">
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">👥 People Checking In</p>
               <div className="flex items-center gap-4">
-                <button type="button" onClick={() => setWalkInPeopleCount((n) => Math.max(1, n - 1))} className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95">−</button>
+                <button type="button" onClick={() => updateWalkInPeopleCount(Math.max(1, walkInPeopleCount - 1))} className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95">−</button>
                 <span className="text-3xl font-bold text-purple-700 w-8 text-center">{walkInPeopleCount}</span>
-                <button type="button" onClick={() => setWalkInPeopleCount((n) => Math.min(10, n + 1))} className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95">+</button>
+                <button type="button" onClick={() => updateWalkInPeopleCount(Math.min(10, walkInPeopleCount + 1))} className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95">+</button>
                 <span className="text-sm text-gray-500 ml-1">{walkInPeopleCount === 1 ? 'person' : 'people'}</span>
               </div>
+              {walkInPeopleDetails.map((p, i) => (
+                <div key={i} className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder={`Person ${i + 1} full name`}
+                    value={p.name}
+                    onChange={(e) => updatePerson(walkInPeopleDetails, setWalkInPeopleDetails, i, 'name', e.target.value)}
+                    className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Age"
+                    value={p.age}
+                    onChange={(e) => updatePerson(walkInPeopleDetails, setWalkInPeopleDetails, i, 'age', e.target.value)}
+                    min="0"
+                    className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+              ))}
             </div>
 
+            {/* Donation */}
             <div>
               <label className="text-xs text-gray-500 mb-2 block">Donation Amount</label>
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {(['Cash', 'Zelle', 'Check'] as const).map((method) => (
-                  <button
-                    key={method}
-                    type="button"
-                    onClick={() => setWalkInPayment(method)}
-                    className={`py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 ${
-                      walkInPayment === method
-                        ? 'bg-purple-600 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
+                  <button key={method} type="button" onClick={() => setWalkInPayment(method)}
+                    className={`py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 ${walkInPayment === method ? 'bg-purple-600 text-white shadow-md' : 'bg-gray-100 text-gray-700'}`}>
                     {method === 'Cash' ? '💵 Cash' : method === 'Zelle' ? '📱 Zelle' : '🖊️ Check'}
                   </button>
                 ))}
               </div>
-              <input
-                type="number"
-                placeholder="Amount ($)"
-                value={walkInAmount}
-                onChange={(e) => setWalkInAmount(e.target.value)}
-                min="0"
-                step="0.01"
-                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400"
-              />
+              <input type="number" placeholder="Amount ($)" value={walkInAmount}
+                onChange={(e) => setWalkInAmount(e.target.value)} min="0" step="0.01"
+                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400" />
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-1">
-              <button onClick={resetWalkIn} className="py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold active:scale-95">
-                Cancel
-              </button>
-              <button onClick={handleWalkInCheckIn} className="py-3 rounded-xl bg-purple-600 text-white font-semibold active:scale-95">
-                Check In
-              </button>
+              <button onClick={resetWalkIn} className="py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold active:scale-95">Cancel</button>
+              <button onClick={handleWalkInCheckIn} className="py-3 rounded-xl bg-purple-600 text-white font-semibold active:scale-95">Check In</button>
             </div>
           </div>
         </div>
