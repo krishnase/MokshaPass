@@ -15,9 +15,20 @@ export default function CheckInSystem() {
   const [peopleCount, setPeopleCount] = useState(1);
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
-  const [emailStatus, setEmailStatus] = useState('');
+  const [, setEmailStatus] = useState('');
   const [todayCount, setTodayCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showWalkIn, setShowWalkIn] = useState(false);
+
+  // Walk-in form state
+  const [walkInFirstName, setWalkInFirstName] = useState('');
+  const [walkInLastName, setWalkInLastName] = useState('');
+  const [walkInPhone, setWalkInPhone] = useState('');
+  const [walkInPayment, setWalkInPayment] = useState<'Cash' | 'Zelle' | 'Check' | ''>('');
+  const [walkInAmount, setWalkInAmount] = useState('');
+  const [walkInPeopleCount, setWalkInPeopleCount] = useState(1);
+  const [walkInError, setWalkInError] = useState('');
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -69,6 +80,41 @@ export default function CheckInSystem() {
     setSelected({ ...selected, checkedIn: true, checkInTime: new Date().toLocaleTimeString() });
   };
 
+  const handleWalkInCheckIn = () => {
+    if (!walkInFirstName.trim()) { setWalkInError('First name is required'); return; }
+    if (!walkInPhone.trim()) { setWalkInError('Phone number is required'); return; }
+
+    const walkInGuest: Guest = {
+      orderDate: new Date().toLocaleDateString(),
+      firstName: walkInFirstName.trim(),
+      lastName: walkInLastName.trim(),
+      email: '',
+      ticketType: 'Walk-in',
+      phone: walkInPhone.trim(),
+      roomNumber: '',
+      notes: walkInPayment ? `Donation: $${walkInAmount || '0'} via ${walkInPayment}` : '',
+    };
+
+    const entry = logCheckIn({
+      guestPhone: walkInGuest.phone,
+      guestName: `${walkInGuest.firstName} ${walkInGuest.lastName}`,
+      roomNumber: '',
+      peopleCount: walkInPeopleCount,
+    });
+
+    postToSheet({
+      type: 'checkin',
+      ...entry,
+      notes: walkInGuest.notes,
+      ticketType: 'Walk-in',
+    });
+
+    setTodayCount(getTodayCheckInCount());
+    setSelected({ ...walkInGuest, checkedIn: true, checkInTime: new Date().toLocaleTimeString() });
+    setShowWalkIn(false);
+    setQuery(`${walkInGuest.firstName} ${walkInGuest.lastName}`);
+  };
+
   const handleClear = () => {
     setQuery('');
     setSelected(null);
@@ -78,11 +124,17 @@ export default function CheckInSystem() {
     inputRef.current?.focus();
   };
 
+  const resetWalkIn = () => {
+    setWalkInFirstName(''); setWalkInLastName('');
+    setWalkInPhone(''); setWalkInPayment(''); setWalkInAmount(''); setWalkInPeopleCount(1);
+    setWalkInError(''); setShowWalkIn(false);
+  };
+
   const alreadyCheckedIn = selected ? isCheckedInToday(selected.phone) : false;
 
   return (
     <div className="p-4 max-w-lg mx-auto pb-24">
-      {/* Header with daily count */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Check-In</h2>
@@ -95,7 +147,7 @@ export default function CheckInSystem() {
       </div>
 
       {/* Search */}
-      <div className="relative mb-4">
+      <div className="relative mb-3">
         <div className="flex items-center bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-purple-400 focus-within:border-purple-400">
           <span className="pl-4 text-gray-400 text-xl">🔍</span>
           <input
@@ -103,10 +155,7 @@ export default function CheckInSystem() {
             type="text"
             placeholder="Name or phone number..."
             value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelected(null);
-            }}
+            onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
             className="flex-1 px-3 py-4 text-base bg-transparent focus:outline-none"
           />
           {query && (
@@ -114,7 +163,6 @@ export default function CheckInSystem() {
           )}
         </div>
 
-        {/* Suggestions Dropdown */}
         {showDropdown && (
           <div className="absolute z-10 w-full mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
             {results.slice(0, 5).map((g, idx) => (
@@ -131,15 +179,23 @@ export default function CheckInSystem() {
                   <p className="text-sm text-gray-500">{g.phone} · Room {g.roomNumber}</p>
                 </div>
                 {isCheckedInToday(g.phone) && (
-                  <span className="ml-auto bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
-                    ✓ In
-                  </span>
+                  <span className="ml-auto bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">✓ In</span>
                 )}
               </button>
             ))}
           </div>
         )}
       </div>
+
+      {/* Walk-in Button */}
+      {!selected && (
+        <button
+          onClick={() => setShowWalkIn(true)}
+          className="w-full mb-4 border-2 border-dashed border-purple-200 text-purple-600 py-3 rounded-2xl font-semibold text-sm active:scale-95 transition-transform hover:border-purple-400 hover:bg-purple-50"
+        >
+          + Add Walk-in Guest
+        </button>
+      )}
 
       {loading && (
         <div className="text-center py-10 text-gray-400">
@@ -151,7 +207,6 @@ export default function CheckInSystem() {
       {/* Guest Card */}
       {selected && (
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-          {/* Profile Header */}
           <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-5 text-white">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-xl font-bold">
@@ -160,45 +215,30 @@ export default function CheckInSystem() {
               <div className="flex-1">
                 <h3 className="text-xl font-bold">{selected.firstName} {selected.lastName}</h3>
                 <p className="text-purple-200 text-sm">{selected.phone}</p>
+                {selected.ticketType === 'Walk-in' && (
+                  <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full mt-1 inline-block">Walk-in</span>
+                )}
               </div>
               {(alreadyCheckedIn || selected.checkedIn) && (
-                <span className="bg-green-400 text-white text-xs px-3 py-1.5 rounded-full font-bold">
-                  ✓ Checked In
-                </span>
+                <span className="bg-green-400 text-white text-xs px-3 py-1.5 rounded-full font-bold">✓ Checked In</span>
               )}
             </div>
           </div>
 
-          {/* Details */}
           <div className="p-4 space-y-3">
-            <DetailRow icon="📧" label="Email" value={selected.email} />
-            <DetailRow icon="🏠" label="Room" value={selected.roomNumber} />
-            <DetailRow icon="🎟️" label="Ticket Type" value={selected.ticketType} />
+            {selected.email && <DetailRow icon="📧" label="Email" value={selected.email} />}
+            {selected.roomNumber && <DetailRow icon="🏠" label="Room" value={selected.roomNumber} />}
+            {selected.ticketType && <DetailRow icon="🎟️" label="Ticket Type" value={selected.ticketType} />}
             {selected.notes && <DetailRow icon="📝" label="Notes" value={selected.notes} />}
 
-            {/* People Count — only show if not yet checked in */}
-            {!alreadyCheckedIn && !selected.checkedIn && (
+            {!alreadyCheckedIn && !selected.checkedIn && selected.ticketType !== 'Walk-in' && (
               <div className="bg-purple-50 rounded-2xl p-4">
-                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-3">
-                  👥 People Checking In
-                </p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-3">👥 People Checking In</p>
                 <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setPeopleCount((n) => Math.max(1, n - 1))}
-                    className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95 transition-transform"
-                  >
-                    −
-                  </button>
+                  <button onClick={() => setPeopleCount((n) => Math.max(1, n - 1))} className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95">−</button>
                   <span className="text-3xl font-bold text-purple-700 w-8 text-center">{peopleCount}</span>
-                  <button
-                    onClick={() => setPeopleCount((n) => Math.min(10, n + 1))}
-                    className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95 transition-transform"
-                  >
-                    +
-                  </button>
-                  <span className="text-sm text-gray-500 ml-1">
-                    {peopleCount === 1 ? 'person' : 'people'} · Room {selected.roomNumber}
-                  </span>
+                  <button onClick={() => setPeopleCount((n) => Math.min(10, n + 1))} className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95">+</button>
+                  <span className="text-sm text-gray-500 ml-1">{peopleCount === 1 ? 'person' : 'people'}</span>
                 </div>
               </div>
             )}
@@ -208,19 +248,8 @@ export default function CheckInSystem() {
                 ✅ Checked in at {selected.checkInTime}
               </div>
             )}
-
-            {emailStatus && (
-              <div className={`rounded-xl p-3 text-sm flex items-center gap-2 ${
-                emailStatus.includes('sent')
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'bg-amber-50 text-amber-700'
-              }`}>
-                {emailStatus.includes('sent') ? '📧' : '⚠️'} {emailStatus}
-              </div>
-            )}
           </div>
 
-          {/* Action Buttons */}
           <div className="p-4 pt-0 space-y-2">
             {!alreadyCheckedIn && !selected.checkedIn ? (
               <button
@@ -235,44 +264,124 @@ export default function CheckInSystem() {
                 ✓ Already Checked In Today
               </div>
             )}
-
-            {selected.email && (selected.checkedIn || alreadyCheckedIn) && !emailStatus && (
-              <button
-                onClick={async () => {
-                  const r = await sendCheckInEmail(selected);
-                  setEmailStatus(r.message);
-                }}
-                className="w-full bg-blue-50 text-blue-700 py-3 rounded-2xl font-semibold active:scale-95 transition-transform"
-              >
-                📧 Resend Confirmation Email
-              </button>
-            )}
-
-            <button
-              onClick={handleClear}
-              className="w-full bg-gray-100 text-gray-600 py-3 rounded-2xl font-semibold active:scale-95 transition-transform"
-            >
+            <button onClick={handleClear} className="w-full bg-gray-100 text-gray-600 py-3 rounded-2xl font-semibold active:scale-95 transition-transform">
               Search Another Guest
             </button>
           </div>
         </div>
       )}
 
-      {/* No results */}
       {query.length >= 2 && results.length === 0 && !selected && !loading && (
         <div className="text-center py-10 text-gray-400">
           <span className="text-4xl block mb-2">🔍</span>
           <p className="font-medium">No guests found</p>
-          <p className="text-sm mt-1">Try a different name or phone number</p>
+          <p className="text-sm mt-1">Try a different name or use Walk-in Guest</p>
         </div>
       )}
 
-      {/* Empty state */}
       {!query && !selected && !loading && (
-        <div className="text-center py-10 text-gray-400">
+        <div className="text-center py-6 text-gray-400">
           <span className="text-4xl block mb-2">👥</span>
           <p className="font-medium">Start typing to search</p>
           <p className="text-sm mt-1">{guests.length} guests loaded</p>
+        </div>
+      )}
+
+      {/* Walk-in Modal */}
+      {showWalkIn && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4" onClick={resetWalkIn}>
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 space-y-4 mb-2" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-800">Walk-in Guest</h3>
+              <button onClick={resetWalkIn} className="text-gray-400 text-2xl leading-none">✕</button>
+            </div>
+
+            {walkInError && (
+              <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3">⚠️ {walkInError}</p>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">First Name *</label>
+                <input
+                  type="text"
+                  placeholder="First name"
+                  value={walkInFirstName}
+                  onChange={(e) => setWalkInFirstName(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Last Name</label>
+                <input
+                  type="text"
+                  placeholder="Last name"
+                  value={walkInLastName}
+                  onChange={(e) => setWalkInLastName(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Phone Number *</label>
+              <input
+                type="tel"
+                placeholder="Phone number"
+                value={walkInPhone}
+                onChange={(e) => setWalkInPhone(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400"
+              />
+            </div>
+
+            <div className="bg-purple-50 rounded-2xl p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-3">👥 People Checking In</p>
+              <div className="flex items-center gap-4">
+                <button type="button" onClick={() => setWalkInPeopleCount((n) => Math.max(1, n - 1))} className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95">−</button>
+                <span className="text-3xl font-bold text-purple-700 w-8 text-center">{walkInPeopleCount}</span>
+                <button type="button" onClick={() => setWalkInPeopleCount((n) => Math.min(10, n + 1))} className="w-10 h-10 rounded-full bg-white shadow text-xl font-bold text-purple-600 active:scale-95">+</button>
+                <span className="text-sm text-gray-500 ml-1">{walkInPeopleCount === 1 ? 'person' : 'people'}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-500 mb-2 block">Donation Amount</label>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {(['Cash', 'Zelle', 'Check'] as const).map((method) => (
+                  <button
+                    key={method}
+                    type="button"
+                    onClick={() => setWalkInPayment(method)}
+                    className={`py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 ${
+                      walkInPayment === method
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    {method === 'Cash' ? '💵 Cash' : method === 'Zelle' ? '📱 Zelle' : '🖊️ Check'}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="number"
+                placeholder="Amount ($)"
+                value={walkInAmount}
+                onChange={(e) => setWalkInAmount(e.target.value)}
+                min="0"
+                step="0.01"
+                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button onClick={resetWalkIn} className="py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold active:scale-95">
+                Cancel
+              </button>
+              <button onClick={handleWalkInCheckIn} className="py-3 rounded-xl bg-purple-600 text-white font-semibold active:scale-95">
+                Check In
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
