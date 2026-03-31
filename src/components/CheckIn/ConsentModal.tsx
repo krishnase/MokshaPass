@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { postToSheet } from '@/lib/api';
+import { uploadPDFToGitHub } from '@/lib/github';
 
 export type PersonDetail = { name: string; age: string };
 
@@ -512,7 +512,7 @@ export default function ConsentModal({ people, primaryPhone, onComplete, onCance
             base64 = await generateMinorPDF(s.name, s.phone, s.minors || [], sig, photoConsent, today);
             filename = `Consent_Minor_${s.name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
           }
-          postToSheet({ type: 'pdf', content: base64, filename, folderId: '1LkjYLY-D_-ACgkMoOzYzH_SXVIla2QPJ' });
+          await uploadPDFToGitHub(filename, base64);
         }
       } catch (err) {
         console.error('PDF upload error:', err);
