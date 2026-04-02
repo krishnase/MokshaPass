@@ -1,4 +1,4 @@
-import { Guest, SaleRecord, CheckInEntry, Volunteer } from '@/types';
+import { Guest, SaleRecord, CheckInEntry, Volunteer, InventoryItem } from '@/types';
 
 /**
  * Fetches guest data from a publicly shared Google Sheet.
@@ -174,6 +174,43 @@ export async function fetchVolunteers(): Promise<Volunteer[]> {
     return rows.filter((r) => r.name);
   } catch (err) {
     console.error('fetchVolunteers error:', err);
+    return [];
+  }
+}
+
+/**
+ * Reads Inventory_List tab from Google Sheet.
+ * Columns: Category | Items | Quantity | Price $
+ */
+export async function fetchInventoryFromSheet(): Promise<InventoryItem[]> {
+  if (!SHEET_ID) return [];
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Inventory_List`;
+    const res = await fetch(url, { cache: 'no-store' });
+    const text = await res.text();
+    const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
+    if (!json.table?.rows?.length) return [];
+    const rows: InventoryItem[] = [];
+    for (const row of json.table.rows) {
+      if (!row?.c) continue;
+      const cell = (i: number) => {
+        const c = row.c[i];
+        if (!c) return '';
+        return String(c.f ?? c.v ?? '').trim();
+      };
+      const name = cell(1);
+      if (!name) continue;
+      rows.push({
+        id: `sheet-${rows.length}`,
+        category: cell(0) || 'Other',
+        name,
+        qty: Number(row.c[2]?.v) || 0,
+        price: Number(row.c[3]?.v) || 0,
+      });
+    }
+    return rows;
+  } catch (err) {
+    console.error('fetchInventoryFromSheet error:', err);
     return [];
   }
 }

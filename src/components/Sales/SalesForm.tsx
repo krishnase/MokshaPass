@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getInventory, saveSale, reduceInventoryQty } from '@/lib/storage';
+import { saveSale, reduceInventoryQty } from '@/lib/storage';
 import { postToSheet } from '@/lib/api';
+import { fetchInventoryFromSheet } from '@/lib/sheets';
 import { InventoryItem } from '@/types';
 
 const DELIVERY_FEE = 15;
@@ -22,7 +23,14 @@ export default function SalesForm() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => { setInventory(getInventory()); }, []);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchInventoryFromSheet().then((data) => {
+      setInventory(data);
+      setLoading(false);
+    });
+  }, []);
 
   const cartQty = (itemId: string) => cart.find((c) => c.item.id === itemId)?.qty ?? 0;
 
@@ -108,7 +116,6 @@ export default function SalesForm() {
       reduceInventoryQty(c.item.id, c.qty);
     });
 
-    setInventory(getInventory());
     setSubmitted(true);
   };
 
@@ -180,43 +187,57 @@ export default function SalesForm() {
           <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-3">
             Items {totalItems > 0 && <span className="text-purple-600">({totalItems} selected)</span>}
           </h3>
-          <div className="space-y-2">
-            {inventory.map((item) => {
-              const inCart = cartQty(item.id);
-              const outOfStock = item.qty === 0;
-              return (
-                <div key={item.id}
-                  className={`flex items-center justify-between rounded-xl px-3 py-2.5 border transition-all ${
-                    inCart > 0 ? 'bg-purple-50 border-purple-300' : outOfStock ? 'bg-gray-50 border-gray-100 opacity-50' : 'bg-gray-50 border-gray-100'
-                  }`}>
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-medium text-sm ${inCart > 0 ? 'text-purple-800' : 'text-gray-800'}`}>{item.name}</p>
-                    <p className="text-xs text-gray-500">${item.price.toFixed(2)} · {item.qty} left</p>
+          {loading ? (
+            <div className="text-center py-6 text-gray-400">
+              <div className="animate-spin text-3xl mb-2">⟳</div>
+              <p className="text-sm">Loading items...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Array.from(new Set(inventory.map((i) => i.category || 'Other'))).map((category) => (
+                <div key={category}>
+                  <p className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-1.5 px-1">{category}</p>
+                  <div className="space-y-2">
+                    {inventory.filter((i) => (i.category || 'Other') === category).map((item) => {
+                      const inCart = cartQty(item.id);
+                      const outOfStock = item.qty === 0;
+                      return (
+                        <div key={item.id}
+                          className={`flex items-center justify-between rounded-xl px-3 py-2.5 border transition-all ${
+                            inCart > 0 ? 'bg-purple-50 border-purple-300' : outOfStock ? 'bg-gray-50 border-gray-100 opacity-50' : 'bg-gray-50 border-gray-100'
+                          }`}>
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-medium text-sm ${inCart > 0 ? 'text-purple-800' : 'text-gray-800'}`}>{item.name}</p>
+                            <p className="text-xs text-gray-500">${item.price.toFixed(2)} · {item.qty} left</p>
+                          </div>
+                          {outOfStock ? (
+                            <span className="text-xs text-gray-400 font-medium">Out of stock</span>
+                          ) : inCart === 0 ? (
+                            <button type="button" onClick={() => updateCart(item, 1)}
+                              className="w-8 h-8 rounded-full bg-purple-600 text-white text-xl font-bold flex items-center justify-center active:scale-95">
+                              +
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <button type="button" onClick={() => updateCart(item, -1)}
+                                className="w-8 h-8 rounded-full bg-white border border-purple-300 text-purple-700 text-xl font-bold flex items-center justify-center active:scale-95">
+                                −
+                              </button>
+                              <span className="text-base font-bold text-purple-700 w-5 text-center">{inCart}</span>
+                              <button type="button" onClick={() => updateCart(item, 1)}
+                                className="w-8 h-8 rounded-full bg-purple-600 text-white text-xl font-bold flex items-center justify-center active:scale-95">
+                                +
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                  {outOfStock ? (
-                    <span className="text-xs text-gray-400 font-medium">Out of stock</span>
-                  ) : inCart === 0 ? (
-                    <button type="button" onClick={() => updateCart(item, 1)}
-                      className="w-8 h-8 rounded-full bg-purple-600 text-white text-xl font-bold flex items-center justify-center active:scale-95">
-                      +
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => updateCart(item, -1)}
-                        className="w-8 h-8 rounded-full bg-white border border-purple-300 text-purple-700 text-xl font-bold flex items-center justify-center active:scale-95">
-                        −
-                      </button>
-                      <span className="text-base font-bold text-purple-700 w-5 text-center">{inCart}</span>
-                      <button type="button" onClick={() => updateCart(item, 1)}
-                        className="w-8 h-8 rounded-full bg-purple-600 text-white text-xl font-bold flex items-center justify-center active:scale-95">
-                        +
-                      </button>
-                    </div>
-                  )}
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Order summary */}
           {cart.length > 0 && (
@@ -280,6 +301,13 @@ export default function SalesForm() {
           </div>
           {payment === 'Zelle' && (
             <div className="space-y-2">
+              <div className="flex items-center gap-3 bg-blue-50 rounded-xl px-4 py-3">
+                <span className="text-2xl">📱</span>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Send Zelle payment to</p>
+                  <p className="text-blue-700 font-bold text-base">master@waytomoksha.org</p>
+                </div>
+              </div>
               <label className="block text-sm text-gray-600 font-medium">Upload Payment Screenshot *</label>
               <input type="file" accept="image/*" onChange={handleScreenshot}
                 className="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-purple-100 file:text-purple-700 file:font-medium" />

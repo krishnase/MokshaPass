@@ -3,6 +3,7 @@ export interface InventoryItem {
   name: string;
   price: number;
   qty: number;
+  category?: string;
 }
 
 export interface SaleRecord {

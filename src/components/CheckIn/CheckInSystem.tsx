@@ -33,7 +33,7 @@ export default function CheckInSystem() {
   const [walkInLastName, setWalkInLastName] = useState('');
   const [walkInPhone, setWalkInPhone] = useState('');
   const [walkInPayment, setWalkInPayment] = useState<'Cash' | 'Zelle' | 'Check' | ''>('');
-  const [walkInAmount, setWalkInAmount] = useState('');
+  const [walkInAmount, setWalkInAmount] = useState('350');
   const [walkInPeopleCount, setWalkInPeopleCount] = useState(1);
   const [walkInPeopleDetails, setWalkInPeopleDetails] = useState<PersonDetail[]>([{ name: '', age: '' }]);
   const [walkInError, setWalkInError] = useState('');
@@ -178,7 +178,7 @@ export default function CheckInSystem() {
 
   const resetWalkIn = () => {
     setWalkInFirstName(''); setWalkInLastName(''); setWalkInPhone('');
-    setWalkInPayment(''); setWalkInAmount('');
+    setWalkInPayment(''); setWalkInAmount('350');
     setWalkInPeopleCount(1); setWalkInPeopleDetails([{ name: '', age: '' }]);
     setWalkInError(''); setShowWalkIn(false);
   };
@@ -425,6 +425,15 @@ export default function CheckInSystem() {
                   </button>
                 ))}
               </div>
+              {walkInPayment === 'Zelle' && (
+                <div className="flex items-center gap-3 bg-blue-50 rounded-xl px-3 py-2.5 mb-2">
+                  <span className="text-xl">📱</span>
+                  <div>
+                    <p className="text-xs text-gray-500">Send Zelle to</p>
+                    <p className="text-blue-700 font-bold text-sm">master@waytomoksha.org</p>
+                  </div>
+                </div>
+              )}
               <input type="number" placeholder="Amount ($)" value={walkInAmount}
                 onChange={(e) => setWalkInAmount(e.target.value)} min="0" step="0.01"
                 className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400" />
