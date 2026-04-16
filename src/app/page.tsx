@@ -129,7 +129,7 @@ export default function Home() {
       {showInfo && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4" onClick={() => setShowInfo(false)}>
           <div
-            className="bg-white rounded-3xl w-full max-w-md p-6 space-y-4 mb-2"
+            className="bg-white rounded-3xl w-full max-w-md p-6 space-y-4 mb-2 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -152,6 +152,42 @@ export default function Home() {
               <div>
                 <p className="font-semibold text-gray-800">WiFi Password</p>
                 <p className="text-blue-700 font-bold text-lg mt-0.5 tracking-wide">loneoak1</p>
+              </div>
+            </div>
+
+            {/* USA Donation */}
+            <div className="bg-green-50 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xl">🏦</span>
+                <p className="font-bold text-gray-800">Donate — USA</p>
+              </div>
+              <p className="text-xs text-gray-500 font-medium">Wells Fargo Bank</p>
+              <div className="space-y-1">
+                <p className="text-sm text-gray-700"><span className="font-semibold">Name:</span> WayToMoksha <span className="text-xs text-green-700 font-semibold">(501(c) Non-Profit)</span></p>
+                <p className="text-sm text-gray-700"><span className="font-semibold">Account No:</span> <span className="font-mono tracking-wide">3017957717</span></p>
+              </div>
+              <div className="flex items-center gap-2 mt-2 bg-white rounded-xl px-3 py-2">
+                <span className="text-lg">📱</span>
+                <div>
+                  <p className="text-xs text-gray-400">Zelle ID</p>
+                  <p className="text-blue-700 font-bold text-sm">Master@waytomoksha.org</p>
+                </div>
+              </div>
+            </div>
+
+            {/* India Donation */}
+            <div className="bg-orange-50 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xl">🇮🇳</span>
+                <p className="font-bold text-gray-800">Donate — India</p>
+              </div>
+              <p className="text-xs text-gray-500 font-medium">Please use UPI ID</p>
+              <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2">
+                <span className="text-lg">💳</span>
+                <div>
+                  <p className="text-xs text-gray-400">UPI ID</p>
+                  <p className="text-orange-700 font-bold text-sm tracking-wide">Wayto97046356@barodampay</p>
+                </div>
               </div>
             </div>
           </div>
