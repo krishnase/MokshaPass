@@ -55,6 +55,15 @@ function doPost(e) {
         data.timestamp,
       ]);
 
+    } else if (data.type === 'volunteer_interest') {
+      let sheet = ss.getSheetByName('VolunteerRequestForm');
+      if (!sheet) {
+        sheet = ss.insertSheet('VolunteerRequestForm');
+        sheet.appendRow(['Full Name', 'Location', 'Phone', 'Email', 'Interested Roles', 'Date', 'Timestamp']);
+        sheet.getRange(1, 1, 1, 7).setFontWeight('bold');
+      }
+      sheet.appendRow([data.fullName, data.location, data.phone, data.email, data.roles, data.date, data.timestamp]);
+
     } else if (data.type === 'pdf') {
       const folder = DriveApp.getFolderById(data.folderId);
       const bytes = Utilities.base64Decode(data.content);

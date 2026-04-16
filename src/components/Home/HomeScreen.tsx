@@ -3,7 +3,7 @@
 import Image from 'next/image';
 
 interface HomeScreenProps {
-  onNavigate: (tab: 'checkin' | 'sales' | 'info') => void;
+  onNavigate: (tab: 'checkin' | 'sales' | 'info' | 'volunteer') => void;
 }
 
 export default function HomeScreen({ onNavigate }: HomeScreenProps) {
@@ -42,15 +42,23 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
         </button>
       </div>
 
-      {/* Info Card */}
-      <div className="w-full max-w-sm mb-8">
+      {/* Info + Volunteer Cards */}
+      <div className="w-full max-w-sm grid grid-cols-2 gap-4 mb-8">
         <button
           onClick={() => onNavigate('info')}
-          className="w-full flex flex-col items-center justify-center gap-2 bg-white rounded-3xl shadow-md border border-blue-100 py-5 px-4 active:scale-95 transition-transform hover:shadow-lg hover:border-blue-300"
+          className="flex flex-col items-center justify-center gap-2 bg-white rounded-3xl shadow-md border border-blue-100 py-5 px-4 active:scale-95 transition-transform hover:shadow-lg hover:border-blue-300"
         >
           <span className="text-4xl">ℹ️</span>
           <span className="text-base font-bold text-gray-800">Retreat Info</span>
-          <span className="text-xs text-gray-400 text-center">WiFi · Room Service · Details</span>
+          <span className="text-xs text-gray-400 text-center">WiFi · Room Service</span>
+        </button>
+        <button
+          onClick={() => onNavigate('volunteer')}
+          className="flex flex-col items-center justify-center gap-2 bg-white rounded-3xl shadow-md border border-green-100 py-5 px-4 active:scale-95 transition-transform hover:shadow-lg hover:border-green-300"
+        >
+          <span className="text-4xl">🤲</span>
+          <span className="text-base font-bold text-gray-800">Volunteer</span>
+          <span className="text-xs text-gray-400 text-center">Join our team</span>
         </button>
       </div>
 

@@ -7,6 +7,7 @@ import SalesForm from '@/components/Sales/SalesForm';
 import InventoryManager from '@/components/Inventory/InventoryManager';
 import CheckInSystem from '@/components/CheckIn/CheckInSystem';
 import VolunteerList from '@/components/Sena/VolunteerList';
+import VolunteerInterestForm from '@/components/Volunteer/VolunteerInterestForm';
 import Image from 'next/image';
 import { getSession, clearSession } from '@/lib/storage';
 import { UserRole } from '@/types';
@@ -25,6 +26,7 @@ export default function Home() {
   const [role, setRole] = useState<UserRole>(null);
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [showInfo, setShowInfo] = useState(false);
+  const [showVolunteer, setShowVolunteer] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -72,6 +74,7 @@ export default function Home() {
         {activeTab === 'home' && (
           <HomeScreen onNavigate={(tab) => {
             if (tab === 'info') setShowInfo(true);
+            else if (tab === 'volunteer') setShowVolunteer(true);
             else setActiveTab(tab as Tab);
           }} />
         )}
@@ -118,6 +121,9 @@ export default function Home() {
         </div>
         <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
       </nav>
+
+      {/* Volunteer Interest Modal */}
+      {showVolunteer && <VolunteerInterestForm onClose={() => setShowVolunteer(false)} />}
 
       {/* Info Modal */}
       {showInfo && (
