@@ -49,8 +49,8 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
           className="flex flex-col items-center justify-center gap-2 bg-white rounded-3xl shadow-md border border-blue-100 py-5 px-4 active:scale-95 transition-transform hover:shadow-lg hover:border-blue-300"
         >
           <span className="text-4xl">ℹ️</span>
-          <span className="text-base font-bold text-gray-800">Retreat Info</span>
-          <span className="text-xs text-gray-400 text-center">WiFi · Room Service</span>
+          <span className="text-base font-bold text-gray-800">Information</span>
+          <span className="text-xs text-gray-400 text-center">Donations · Details</span>
         </button>
         <button
           onClick={() => onNavigate('volunteer')}

@@ -133,26 +133,8 @@ export default function Home() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-800">Retreat Info</h2>
+              <h2 className="text-xl font-bold text-gray-800">Information</h2>
               <button onClick={() => setShowInfo(false)} className="text-gray-400 text-2xl leading-none">✕</button>
-            </div>
-
-            <div className="flex items-start gap-3 bg-purple-50 rounded-2xl p-4">
-              <span className="text-2xl shrink-0">🏡</span>
-              <div>
-                <p className="font-semibold text-gray-800">LoneOak Ranch — Room Service</p>
-                <a href="tel:9406682855" className="text-purple-600 font-bold text-lg mt-0.5 block">
-                  940-668-2855
-                </a>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 bg-blue-50 rounded-2xl p-4">
-              <span className="text-2xl shrink-0">📶</span>
-              <div>
-                <p className="font-semibold text-gray-800">WiFi Password</p>
-                <p className="text-blue-700 font-bold text-lg mt-0.5 tracking-wide">loneoak1</p>
-              </div>
             </div>
 
             {/* USA Donation */}
