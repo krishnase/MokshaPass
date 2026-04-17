@@ -96,6 +96,7 @@ function SignatureCanvas({ onSign }: { onSign: (dataUrl: string) => void }) {
 async function generateConsentPDF(
   name: string, email: string, phone: string,
   challenges: string,
+  meditationDays: string, dreamCount: string, conceptsAware: string,
   mentorName: string, mentorPhone: string,
   recordingConsent: boolean,
   signatureDataUrl: string,
@@ -143,11 +144,15 @@ async function generateConsentPDF(
   doc.setFont('helvetica', 'bold'); doc.text('Email:', LM, y); doc.setFont('helvetica', 'normal'); doc.text(email || '—', LM + 14, y); rule();
   doc.setFont('helvetica', 'bold'); doc.text('Phone:', LM, y); doc.setFont('helvetica', 'normal'); doc.text(phone, LM + 14, y); rule();
   if (challenges.trim()) {
-    doc.setFont('helvetica', 'bold'); doc.text('Challenges / Intentions:', LM, y); line(5);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.text('Challenges / Intentions:', LM, y); line(5);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
     const cLines = doc.splitTextToSize(challenges, W - 2);
     doc.text(cLines, LM, y); line(cLines.length * 4.5 + 3);
   }
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold'); doc.text('Days of 4P Meditation:', LM, y); doc.setFont('helvetica', 'normal'); doc.text(meditationDays || '—', LM + 48, y); rule();
+  doc.setFont('helvetica', 'bold'); doc.text('Dreams Received:', LM, y); doc.setFont('helvetica', 'normal'); doc.text(dreamCount || '—', LM + 36, y); rule();
+  doc.setFont('helvetica', 'bold'); doc.text('Aware of WayToMoksha Concepts:', LM, y); doc.setFont('helvetica', 'normal'); doc.text(conceptsAware ? conceptsAware.toUpperCase() : '—', LM + 68, y); rule();
   if (mentorName.trim()) {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
     doc.text('Mentor Name:', LM, y); doc.setFont('helvetica', 'normal'); doc.text(mentorName, LM + 28, y); rule();
@@ -274,6 +279,9 @@ export default function HanumanHealingForm({ onClose }: Props) {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [challenges, setChallenges] = useState('');
+  const [meditationDays, setMeditationDays] = useState('');
+  const [dreamCount, setDreamCount] = useState('');
+  const [conceptsAware, setConceptsAware] = useState<'yes' | 'no' | ''>('');
   const [mentorName, setMentorName] = useState('');
   const [mentorPhone, setMentorPhone] = useState('');
   const [error, setError] = useState('');
@@ -301,7 +309,9 @@ export default function HanumanHealingForm({ onClose }: Props) {
     try {
       const base64 = await generateConsentPDF(
         fullName.trim(), email.trim(), phone.trim(),
-        challenges.trim(), mentorName.trim(), mentorPhone.trim(),
+        challenges.trim(),
+        meditationDays.trim(), dreamCount.trim(), conceptsAware,
+        mentorName.trim(), mentorPhone.trim(),
         recordingConsent, signature, today
       );
       const filename = `HanumanHealing_${fullName.trim().replace(/\s+/g, '_')}_${Date.now()}.pdf`;
@@ -313,6 +323,9 @@ export default function HanumanHealingForm({ onClose }: Props) {
         phone: phone.trim(),
         email: email.trim(),
         challenges: challenges.trim(),
+        meditationDays: meditationDays.trim(),
+        dreamCount: dreamCount.trim(),
+        conceptsAware,
         mentorName: mentorName.trim(),
         mentorPhone: mentorPhone.trim(),
         recordingConsent,
@@ -392,6 +405,28 @@ export default function HanumanHealingForm({ onClose }: Props) {
                 <textarea placeholder="Share what you are seeking support with, your intentions, or areas of concern..." value={challenges}
                   onChange={(e) => setChallenges(e.target.value)} rows={4}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none" />
+              </div>
+
+              {/* 4P Meditation & Dreams */}
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-purple-600 uppercase tracking-wider">Practice Details</p>
+                <input type="number" min="0" placeholder="How many days did you do 4P meditation?" value={meditationDays}
+                  onChange={(e) => setMeditationDays(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                <input type="number" min="0" placeholder="How many dreams did you get?" value={dreamCount}
+                  onChange={(e) => setDreamCount(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">Are you aware of all WayToMoksha concepts?</p>
+                  <div className="flex gap-3">
+                    {(['yes', 'no'] as const).map((val) => (
+                      <button key={val} type="button" onClick={() => setConceptsAware(val)}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all active:scale-95 ${conceptsAware === val ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-200'}`}>
+                        {val === 'yes' ? '✓ Yes' : '✕ No'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Mentor Info */}

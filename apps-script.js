@@ -68,10 +68,10 @@ function doPost(e) {
       let sheet = ss.getSheetByName('HanumanHealing');
       if (!sheet) {
         sheet = ss.insertSheet('HanumanHealing');
-        sheet.appendRow(['Full Name', 'Phone', 'Email', 'Challenges', 'Mentor Name', 'Mentor Phone', 'Date', 'Timestamp']);
-        sheet.getRange(1, 1, 1, 8).setFontWeight('bold');
+        sheet.appendRow(['Full Name', 'Phone', 'Email', 'Challenges', '4P Meditation Days', 'Dreams Count', 'Aware of Concepts', 'Mentor Name', 'Mentor Phone', 'Date', 'Timestamp']);
+        sheet.getRange(1, 1, 1, 11).setFontWeight('bold');
       }
-      sheet.appendRow([data.fullName, data.phone, data.email, data.challenges, data.mentorName, data.mentorPhone, data.date, data.timestamp]);
+      sheet.appendRow([data.fullName, data.phone, data.email, data.challenges, data.meditationDays || '', data.dreamCount || '', data.conceptsAware || '', data.mentorName, data.mentorPhone, data.date, data.timestamp]);
 
     } else if (data.type === 'pdf') {
       const folder = DriveApp.getFolderById(data.folderId);
