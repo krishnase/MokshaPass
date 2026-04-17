@@ -3,7 +3,7 @@
 import Image from 'next/image';
 
 interface HomeScreenProps {
-  onNavigate: (tab: 'checkin' | 'sales' | 'info' | 'volunteer') => void;
+  onNavigate: (tab: 'checkin' | 'sales' | 'info' | 'volunteer' | 'hanuman') => void;
 }
 
 export default function HomeScreen({ onNavigate }: HomeScreenProps) {
@@ -42,23 +42,33 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
         </button>
       </div>
 
-      {/* Info + Volunteer Cards */}
-      <div className="w-full max-w-sm grid grid-cols-2 gap-4 mb-8">
+      {/* Info + Volunteer + Hanuman Cards */}
+      <div className="w-full max-w-sm grid grid-cols-3 gap-3 mb-8">
         <button
           onClick={() => onNavigate('info')}
-          className="flex flex-col items-center justify-center gap-2 bg-white rounded-3xl shadow-md border border-blue-100 py-5 px-4 active:scale-95 transition-transform hover:shadow-lg hover:border-blue-300"
+          className="flex flex-col items-center justify-center gap-2 bg-white rounded-3xl shadow-md border border-blue-100 py-5 px-2 active:scale-95 transition-transform hover:shadow-lg hover:border-blue-300"
         >
           <span className="text-4xl">ℹ️</span>
-          <span className="text-base font-bold text-gray-800">Information</span>
-          <span className="text-xs text-gray-400 text-center">Donations · Details</span>
+          <span className="text-sm font-bold text-gray-800">Information</span>
+          <span className="text-xs text-gray-400 text-center">Donations</span>
         </button>
         <button
           onClick={() => onNavigate('volunteer')}
-          className="flex flex-col items-center justify-center gap-2 bg-white rounded-3xl shadow-md border border-green-100 py-5 px-4 active:scale-95 transition-transform hover:shadow-lg hover:border-green-300"
+          className="flex flex-col items-center justify-center gap-2 bg-white rounded-3xl shadow-md border border-green-100 py-5 px-2 active:scale-95 transition-transform hover:shadow-lg hover:border-green-300"
         >
           <span className="text-4xl">🤲</span>
-          <span className="text-base font-bold text-gray-800">Volunteer</span>
+          <span className="text-sm font-bold text-gray-800">Volunteer</span>
           <span className="text-xs text-gray-400 text-center">Join our team</span>
+        </button>
+        <button
+          onClick={() => onNavigate('hanuman')}
+          className="flex flex-col items-center justify-center gap-2 bg-white rounded-3xl shadow-md border border-yellow-100 py-5 px-2 active:scale-95 transition-transform hover:shadow-lg hover:border-yellow-300"
+        >
+          <div className="w-12 h-12 relative rounded-full overflow-hidden">
+            <Image src="/hanuman.png" alt="Hanuman Healing" fill className="object-cover object-top" />
+          </div>
+          <span className="text-sm font-bold text-gray-800">Hanuman</span>
+          <span className="text-xs text-gray-400 text-center">Healing</span>
         </button>
       </div>
 

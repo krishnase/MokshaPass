@@ -64,6 +64,15 @@ function doPost(e) {
       }
       sheet.appendRow([data.fullName, data.location, data.phone, data.email, data.roles, data.date, data.timestamp]);
 
+    } else if (data.type === 'hanuman_healing') {
+      let sheet = ss.getSheetByName('HanumanHealing');
+      if (!sheet) {
+        sheet = ss.insertSheet('HanumanHealing');
+        sheet.appendRow(['Full Name', 'Phone', 'Email', 'Challenges', 'Mentor Name', 'Mentor Phone', 'Date', 'Timestamp']);
+        sheet.getRange(1, 1, 1, 8).setFontWeight('bold');
+      }
+      sheet.appendRow([data.fullName, data.phone, data.email, data.challenges, data.mentorName, data.mentorPhone, data.date, data.timestamp]);
+
     } else if (data.type === 'pdf') {
       const folder = DriveApp.getFolderById(data.folderId);
       const bytes = Utilities.base64Decode(data.content);

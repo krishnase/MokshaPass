@@ -8,6 +8,7 @@ import InventoryManager from '@/components/Inventory/InventoryManager';
 import CheckInSystem from '@/components/CheckIn/CheckInSystem';
 import VolunteerList from '@/components/Sena/VolunteerList';
 import VolunteerInterestForm from '@/components/Volunteer/VolunteerInterestForm';
+import HanumanHealingForm from '@/components/HanumanHealing/HanumanHealingForm';
 import Image from 'next/image';
 import { getSession, clearSession } from '@/lib/storage';
 import { UserRole } from '@/types';
@@ -27,6 +28,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [showInfo, setShowInfo] = useState(false);
   const [showVolunteer, setShowVolunteer] = useState(false);
+  const [showHanuman, setShowHanuman] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -75,6 +77,7 @@ export default function Home() {
           <HomeScreen onNavigate={(tab) => {
             if (tab === 'info') setShowInfo(true);
             else if (tab === 'volunteer') setShowVolunteer(true);
+            else if (tab === 'hanuman') setShowHanuman(true);
             else setActiveTab(tab as Tab);
           }} />
         )}
@@ -124,6 +127,9 @@ export default function Home() {
 
       {/* Volunteer Interest Modal */}
       {showVolunteer && <VolunteerInterestForm onClose={() => setShowVolunteer(false)} />}
+
+      {/* Hanuman Healing Modal */}
+      {showHanuman && <HanumanHealingForm onClose={() => setShowHanuman(false)} />}
 
       {/* Info Modal */}
       {showInfo && (
